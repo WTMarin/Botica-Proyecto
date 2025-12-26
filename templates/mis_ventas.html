@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ reporte_nombre }}</title>
+    <style>
+        /* --- Estilos Generales y Tipografía --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f8f9fa; color: #343a40; }
+        .container { max-width: 1200px; margin: auto; }
+        
+        /* --- Tarjetas (Cards) --- */
+        .card { border: none; border-radius: 10px; margin-bottom: 25px; background-color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card-header { padding: 15px 20px; border-bottom: 1px solid #e9ecef; background-color: #f1f3f4; font-weight: 600; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; }
+        .card-body { padding: 25px 20px; }
+
+        /* --- Botones --- */
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-weight: 500; transition: background-color 0.2s; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-info { background-color: #17a2b8; color: white; } 
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-success:hover { background-color: #1e7e34; }
+        .btn-info:hover { background-color: #117a8b; }
+
+        /* --- Alertas/Mensajes --- */
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+
+
+        /* --- Tablas de Detalle --- */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            font-size: 0.95em; 
+            table-layout: fixed; 
+        }
+        th, td { border: 1px solid #dee2e6; padding: 12px; text-align: left; vertical-align: top; }
+        th { background-color: #e9ecef; font-weight: 600; color: #495057; text-transform: uppercase; font-size: 0.9em; }
+        table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        
+        /* Ajustes de Ancho de Columna (Optimización) */
+        .col-fecha { width: 150px; }
+        .col-cant { width: 70px; text-align: center; }
+        .col-unitario, .col-efectivo, .col-transferencia, .col-total { 
+            width: 120px; 
+            text-align: right; 
+            font-weight: bold;
+        }
+
+        .monto-total { color: #dc3545; }
+        
+        /* --- Utilidades --- */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .fw-bold { font-weight: 700; }
+        .row { display: flex; flex-wrap: wrap; margin: 0; }
+        .col-md-6 { flex: 0 0 50%; max-width: 50%; padding: 0 12px; }
+        .col-md-12 { flex: 0 0 100%; max-width: 100%; padding: 0; } 
+        .list-group-item { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .badge { padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em; }
+        .bg-primary { background-color: #007bff; color: white; }
+        .bg-success { background-color: #28a745; color: white; }
+        .bg-info { background-color: #17a2b8; color: white; }
+        .bg-secondary { background-color: #6c757d; color: white; }
+        .text-success { color: #28a745; }
+        .text-danger { color: #dc3545; }
+        .text-primary { color: #007bff; }
+        .mt-3 { margin-top: 15px; }
+        .mt-5 { margin-top: 30px; }
+        .mb-3 { margin-bottom: 15px; }
+        .form-control { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2>📄 {{ reporte_nombre }}</h2>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Volver al Dashboard</a>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="card mt-3">
+                    <div class="card-header">📅 Filtrar Ventas</div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('mis_ventas') }}">
+                            <label for="fecha_inicio" class="fw-bold">Desde el Día:</label>
+                            <input type="date" id="fecha_inicio" name="fecha_inicio" 
+                                value="{{ fecha_inicio_str or '' }}" required style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;"> 
+                                
+                            <label for="fecha_fin" class="fw-bold" style="margin-left: 20px;">Hasta el Día:</label>
+                            <input type="date" id="fecha_fin" name="fecha_fin" 
+                                value="{{ fecha_fin_str or '' }}" required style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                
+                            <button type="submit" class="btn btn-primary" style="margin-left: 20px;">🔍 Buscar Ventas</button>
+                            
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('mis_ventas') }}'">🗓️ Ver Ventas de Hoy</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mt-5">
+                    <div class="card-header bg-success text-white" style="background-color: #28a745; color: white;">💰 Resumen del Periodo Filtrado</div>
+                    <div class="card-body">
+                        <p class="fw-bold">Total Vendido en el periodo: <span class="badge bg-success" style="font-size: 1.2em;">S/ {{ "%.2f"|format(total_vendido_hoy) }}</span></p>
+                    </div>
+                </div>
+
+                <div class="card mt-5">
+                    <div class="card-header">📜 Detalle de Ventas</div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="col-fecha">Fecha/Hora</th>
+                                    <th>Producto</th>
+                                    <th class="col-cant">Cant.</th>
+                                    <th class="col-unitario">P. Venta Unitario (S/)</th>
+                                    <th class="col-efectivo">💵 Efectivo (S/)</th>
+                                    <th class="col-transferencia">📱 Transf./Yape (S/)</th>
+                                    <th class="col-total">Total Venta</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for venta in ventas %}
+                                    <tr>
+                                        <td class="col-fecha">{{ venta.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>{{ venta.nombre_producto }}</td>
+                                        <td class="col-cant">{{ venta.cantidad }}</td>
+                                        <td class="col-unitario">S/ {{ "%.2f"|format(venta.precio_con_descuento) }}</td>
+                                        
+                                        {# Lógica para Efectivo #}
+                                        <td class="col-efectivo">
+                                            {% if venta.metodo_pago == 'Efectivo' or venta.metodo_pago == 'Mixto' %}
+                                                S/ {{ "%.2f"|format(venta.monto_efectivo_mixto or venta.total) }}
+                                            {% else %}
+                                                S/ 0.00
+                                            {% endif %}
+                                        </td>
+                                        
+                                        {# Lógica para Transferencia/Yape #}
+                                        <td class="col-transferencia">
+                                            {% if venta.metodo_pago == 'Transferencia' or venta.metodo_pago == 'Mixto' %}
+                                                S/ {{ "%.2f"|format(venta.monto_yape_mixto or venta.total) }}
+                                            {% else %}
+                                                S/ 0.00
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <td class="col-total monto-total fw-bold">S/ {{ "%.2f"|format(venta.total) }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No hay ventas registradas para este periodo.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+
+                <div class="card mt-5">
+                    <div class="card-header bg-primary text-white" style="background-color: #007bff; color: white;">📋 Historial Completo de Cierres de Caja</div>
+                    <div class="card-body">
+                        <table id="tablaHistorialCierres">
+                            <thead>
+                                <tr>
+                                    <th class="col-fecha">Fecha/Hora Cierre</th>
+                                    <th>Fondo (S/)</th>
+                                    <th>Efectivo Contado (S/)</th>
+                                    <th>Tarjeta Contado (S/)</th>
+                                    <th>Venta Sistema (S/)</th>
+                                    <th style="background-color: #fce3e3;">(S/F) Efectivo</th>
+                                    <th style="background-color: #fce3e3;">(S/F) Tarjeta</th>
+                                    <th style="background-color: #dc3545; color: white;">TOTAL (S/F)</th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                {% for cierre in historial_cierres %}
+                                    {# Los cálculos deben estar DENTRO del loop for #}
+                                    {% set diferencia_efectivo_corregida = cierre.diferencia_efectivo %}
+                                    {% set total_sobrante_faltante_cierre = diferencia_efectivo_corregida + cierre.diferencia_tarjeta %}
+
+                                    <tr>
+                                        <td class="col-fecha">{{ cierre.fecha_cierre.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td class="text-right">S/ {{ "%.2f"|format(cierre.fondo_fijo) }}</td>
+                                        <td class="text-right fw-bold">S/ {{ "%.2f"|format(cierre.efectivo_contado) }}</td>
+                                        <td class="text-right">S/ {{ "%.2f"|format(cierre.tarjeta_yape_fisico) }}</td>
+                                        <td class="text-right text-primary">S/ {{ "%.2f"|format(cierre.ventas_totales_sistema) }}</td>
+                                        
+                                        {# Sobrante/Faltante Efectivo #}
+                                        <td class="text-right fw-bolder text-{{ 'success' if diferencia_efectivo_corregida > 0.05 else ('danger' if diferencia_efectivo_corregida < -0.05 else 'primary') }}">
+                                            S/ {{ "%.2f"|format(diferencia_efectivo_corregida) }}
+                                        </td>
+                                        
+                                        {# Sobrante/Faltante Tarjeta #}
+                                        <td class="text-right fw-bold text-{{ 'success' if cierre.diferencia_tarjeta > 0.05 else ('danger' if cierre.diferencia_tarjeta < -0.05 else 'primary') }}">
+                                            S/ {{ "%.2f"|format(cierre.diferencia_tarjeta) }}
+                                        </td>
+                                        
+                                        {# Sobrante/Faltante TOTAL #}
+                                        <td class="text-right fw-bolder text-{{ 'success' if total_sobrante_faltante_cierre > 0.05 else ('danger' if total_sobrante_faltante_cierre < -0.05 else 'primary') }}">
+                                            S/ {{ "%.2f"|format(total_sobrante_faltante_cierre) }}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                {# Contenido si la lista 'historial_cierres' está vacía #}
+                                <tr>
+                                    <td colspan="8" class="text-center">Aún no se ha registrado ningún cierre de caja.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+
+                            {# 🟢 Mover los cálculos y el <tfoot> (Pie de Tabla) aquí, JUSTO ANTES DE CERRAR EL </table> #}
+                            
+                            {% set total_dif_efectivo = historial_cierres | map(attribute='diferencia_efectivo') | sum | default(0.0) | float %}
+                            {% set total_dif_tarjeta = historial_cierres | map(attribute='diferencia_tarjeta') | sum | default(0.0) | float %}
+                            {% set total_sobrante_faltante_final = total_dif_efectivo + total_dif_tarjeta %}
+                            
+                            {% if historial_cierres %}
+                            <tfoot class="fw-bold">
+                                <tr>
+                                    <td class="text-right fw-bold" style="background-color: #e9ecef;" colspan="1">TOTAL:</td>
+                                    
+                                    <td class="text-right fw-bold bg-secondary text-white">
+                                        S/ {{ "%.2f"|format(totales_caja.fondo_caja | default(0.0) | float) }}
+                                    </td>
+                                    
+                                    <td class="text-right fw-bold" style="background-color: #d1ecf1;">
+                                        S/ {{ "%.2f"|format(historial_cierres | map(attribute='efectivo_contado') | sum | default(0.0) | float) }}
+                                    </td>
+                                    
+                                    <td class="text-right fw-bold" style="background-color: #d1ecf1;">
+                                        S/ {{ "%.2f"|format(historial_cierres | map(attribute='tarjeta_yape_fisico') | sum | default(0.0) | float) }}
+                                    </td>
+                                    
+                                    <td class="col-total text-right fw-bolder text-primary" style="background-color: #d1ecf1;">
+                                        S/ {{ "%.2f"|format(historial_cierres | map(attribute='ventas_totales_sistema') | sum | default(0.0) | float) }}
+                                    </td>
+                                
+                                    {# Total Diferencia Efectivo #}
+                                    <td class="text-right fw-bolder" style="background-color: #fce3e3; color: #495057;">
+                                        <span class="text-{{ 'success' if total_dif_efectivo > 0.05 else ('danger' if total_dif_efectivo < -0.05 else 'primary') }}">
+                                            S/ {{ "%.2f"|format(total_dif_efectivo) }}
+                                        </span>
+                                    </td>
+
+                                    {# Total Diferencia Tarjeta #}
+                                    <td class="text-right fw-bolder" style="background-color: #fce3e3; color: #495057;">
+                                        <span class="text-{{ 'success' if total_dif_tarjeta > 0.05 else ('danger' if total_dif_tarjeta < -0.05 else 'primary') }}">
+                                            S/ {{ "%.2f"|format(total_dif_tarjeta) }}
+                                        </span>
+                                    </td>
+
+                                    {# Total Sobrante/Faltante Final #}
+                                    <td class="col-total text-right fw-bolder" style="background-color: #dc3545; color: white; font-size: 1.1em;">
+                                        <span class="text-{{ 'success' if total_sobrante_faltante_final > 0.05 else ('danger' if total_sobrante_faltante_final < -0.05 else 'primary') }}" style="color: white !important;">
+                                            S/ {{ "%.2f"|format(total_sobrante_faltante_final) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
+
+
+                {# Usamos la clase g-0 (gutter 0) para eliminar el relleno lateral del row #}
+                <div class="row g-0"> 
+                    {# Usamos p-0 (padding 0) para eliminar el relleno lateral de la columna #}
+                    <div class="col-md-12 p-0"> 
+                        <div class="card">
+                            <h5 class="card-header bg-primary text-white">💵 Cuadre y Cierre de Caja (Turno Actual)</h5>
+                            <div class="card-body">
+                                
+                                {# CONTENEDOR PRINCIPAL: USAMOS CSS INLINE PARA FORZAR EL COMPORTAMIENTO FLEX #}
+                                <div style="display: flex; flex-wrap: wrap; width: 100%; justify-content: space-between;">
+                                    
+                                    {# BLOQUE IZQUIERDO (Formulario): ANCHO FORZADO 48% #}
+                                    <div style="width: 48%; padding-right: 15px; box-sizing: border-box;"> 
+
+                                        <p class="fw-bold" style="color: #007bff; margin-bottom: 15px; font-size: 1.1em;">Ventas Registradas de su turno (Desde el último cierre):</p>
+                                        <ul style="list-style: none; padding: 0;">
+                                            {% if totales_caja %}
+                                            <li class="list-group-item">Total Efectivo (Sistema): <span class="badge bg-primary">S/ {{ "%.2f"|format(totales_caja.efectivo_sistema | default(0.0) | float) }}</span></li>
+                                            <li class="list-group-item">Total Tarjeta/Yape (Sistema): <span class="badge bg-info">S/ {{ "%.2f"|format(totales_caja.tarjeta_sistema | default(0.0) | float) }}</span></li>
+                                            <li class="list-group-item">Total Venta (Sistema): <span class="badge bg-success">S/ {{ "%.2f"|format(totales_caja.ventas_totales_sistema | default(0.0) | float) }}</span></li>
+                                            {% else %}
+                                            <li class="list-group-item">Total Efectivo (Sistema): <span class="badge bg-primary">S/ 0.00</span></li>
+                                            <li class="list-group-item">Total Tarjeta/Yape (Sistema): <span class="badge bg-info">S/ 0.00</span></li>
+                                            <li class="list-group-item">Total Venta (Sistema): <span class="badge bg-success">S/ 0.00</span></li>
+                                            {% endif %}
+                                        </ul>
+
+                                        <form id="formCierreCaja" method="POST" action="{{ url_for('cerrar_caja') }}">
+                                            <p class="fw-bold mt-3">Datos Contados por el Vendedor:</p>
+                                            
+                                            <div class="mb-3">
+                                                <label for="fondo_fijo" class="fw-bold">1. Fondo Fijo / Base (S/)</label>
+                                                <input type="number" step="0.01" min="0" id="fondo_fijo" name="fondo_fijo" class="form-control" value="150.00" required>
+                                                <small style="color: #6c757d; display: block; margin-top: 5px;">Monto inicial con el que empezó el turno.</small>
+                                            </div>
+                                            <input type="hidden" id="fondoFijoInicial" value="{{ ultimo_cierre.fondo_fijo if ultimo_cierre else '0.00' }}">
+                                            <div class="mb-3">
+                                                <label for="tarjeta_yape_fisico" class="fw-bold">2. Tarjeta/Yape (Monto Contado S/)</label>
+                                                <input type="number" step="0.01" min="0" id="tarjeta_yape_fisico" name="tarjeta_yape_fisico" class="form-control" 
+                                                    value="{{ '%.2f'|format(totales_caja.tarjeta_sistema | default(0.0) | float) }}" required> 
+                                                <small style="color: #6c757d; display: block; margin-top: 5px;">Monto total de pagos digitales contados.</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="efectivo_contado" class="fw-bold">3. Efectivo Total en Caja (Monto Contado S/)</label>
+                                                <input type="number" step="0.01" min="0" id="efectivo_contado" name="efectivo_contado" class="form-control" 
+                                                    value="{{ '%.2f'|format(totales_caja.efectivo_sistema | default(0.0) | float) }}" required>
+                                                <small style="color: #6c757d; display: block; margin-top: 5px;">Efectivo *físico* total al momento del cierre.</small>
+                                            </div>
+                                            
+                                            <button type="button" id="btnPrevisualizar" class="btn btn-info" style="width: 100%; margin-top: 15px;">🔍 Previsualizar Cuadre</button>
+                                        </form>
+                                    </div> 
+
+                                    {# BLOQUE DERECHO (Previsualización): ANCHO FORZADO 52% #}
+                                    <div style="width: 52%; padding-left: 15px; box-sizing: border-box;"> 
+                                        <div id="previsualizacionCierre" style="display: none;">
+                                            <p class="fw-bold" style="color: #007bff; margin-bottom: 15px; font-size: 1.1em;">Previsualización del Cuadre:</p>
+                                            
+                                            
+                                            <table style="margin-top: 0; table-layout: auto; width: 100%;">
+                                                <tr>
+                                                    <th style="width: 70%; background-color: #f8f9fa; text-align: left;">Fondo Fijo Reportado</th>
+                                                    <td id="prevFondoFijo" class="text-right"></td>
+                                                </tr>
+                                                <tr>
+                                                    <th style="background-color: #f8f9fa; text-align: left;">Total Tarjeta/Yape (Contado)</th>
+                                                    <td id="prevTarjetaYapeContado" class="text-right"></td>
+                                                </tr>
+                                                <tr>
+                                                    <th style="background-color: #f8f9fa; text-align: left;">Total Efectivo Caja (Contado)</th>
+                                                    <td id="prevEfectivoContado" class="text-right fw-bold"></td>
+                                                </tr>
+                                                <tr>
+                                                    <th style="background-color: #e9ecef; text-align: left;">Total Venta Sistema (Turno)</th>
+                                                    <td id="prevTotalVentaSistema" class="text-right fw-bolder text-primary">
+                                                        S/ {{ "%.2f"|format(totales_caja.ventas_totales_sistema | default(0.0) | float) }}
+                                                    </td>
+                                                </tr>
+                                                <tr class="mt-2"><td colspan="2"></td></tr>
+                                                
+                                                <tr>
+                                                    <th style="background-color: #e9ecef; text-align: left;">(Sobrante/Faltante) Efectivo</th>
+                                                    <td id="prevDiferenciaEfectivo" class="text-right fw-bolder"></td>
+                                                </tr>
+                                                <tr>
+                                                    <th style="background-color: #e9ecef; text-align: left;">(Sobrante/Faltante) Tarjeta/Yape</th>
+                                                    <td id="prevDiferenciaTarjeta" class="text-right fw-bolder"></td>
+                                                </tr>
+
+                                                <tr>
+                                                    <th style="background-color: #dc3545; color: white; font-size: 1.1em; text-align: left;">(SOBRANTE/FALTANTE) TOTAL</th>
+                                                    <td id="prevDiferenciaTotal" class="text-right fw-bolder" style="font-size: 1.1em; background-color: #dc3545; color: white;"></td>
+                                                </tr>
+                                            </table>
+                                            
+                                            <p class="mt-3">
+                                                <span id="prevEstadoCaja" class="badge bg-secondary" style="font-size: 1em;">Verifique los datos y proceda a guardar.</span>
+                                            </p>
+                                            
+                                            <button type="submit" form="formCierreCaja" class="btn btn-success" style="width: 100%; margin-top: 15px;">💾 Guardar Definitivo</button>
+                                        </div>
+                                    </div>
+                                </div> 
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnPrevisualizar = document.getElementById('btnPrevisualizar');
+        const previsualizacionCierre = document.getElementById('previsualizacionCierre');
+        
+        // Inputs del formulario
+        const fondoFijoInput = document.getElementById('fondo_fijo');
+        const efectivoContadoInput = document.getElementById('efectivo_contado');
+        const tarjetaYapeContadoInput = document.getElementById('tarjeta_yape_fisico');
+        
+        // **NUEVO** Elemento oculto para el Fondo Fijo del inicio del turno
+        const fondoFijoInicialInput = document.getElementById('fondoFijoInicial');
+
+        // Elementos de la previsualización
+        const prevFondoFijo = document.getElementById('prevFondoFijo');
+        const prevTarjetaYapeContado = document.getElementById('prevTarjetaYapeContado');
+        const prevEfectivoContado = document.getElementById('prevEfectivoContado');
+        const prevDiferenciaEfectivo = document.getElementById('prevDiferenciaEfectivo');
+        const prevDiferenciaTarjeta = document.getElementById('prevDiferenciaTarjeta');
+        const prevEstadoCaja = document.getElementById('prevEstadoCaja');
+        const prevDiferenciaTotal = document.getElementById('prevDiferenciaTotal');
+
+        // 1. CORRECCIÓN ESTABILIDAD: Aseguramos que las variables de Jinja siempre sean un número (0.00 si son None)
+        const efectivoSistema = parseFloat("{{ '%.2f'|format(totales_caja.efectivo_sistema | default(0)) }}");
+        const tarjetaSistema = parseFloat("{{ '%.2f'|format(totales_caja.tarjeta_sistema | default(0)) }}");
+        
+        btnPrevisualizar.addEventListener('click', function() {
+            
+            // Validar que el efectivo contado no esté vacío
+            if (!efectivoContadoInput.value) {
+                alert("Por favor, ingrese el 'Efectivo Total en Caja (Monto Contado S/)' antes de previsualizar.");
+                return;
+            }
+
+            const fondoFijo = parseFloat(fondoFijoInput.value) || 0;
+            const efectivoContado = parseFloat(efectivoContadoInput.value) || 0;
+            const tarjetaContado = parseFloat(tarjetaYapeContadoInput.value) || 0;
+            // **NUEVO** Obtenemos el fondo fijo con el que empezó este turno
+            const fondoFijoInicial = parseFloat(fondoFijoInicialInput.value) || 0;
+
+            // CÁLCULOS
+            
+            // 2. CORRECCIÓN LÓGICA: El Efectivo Esperado es (Ventas del Sistema + Fondo Fijo).
+            // La diferencia es (Efectivo Contado - Efectivo Esperado).
+            const diferenciaEfectivo = efectivoContado - efectivoSistema; 
+
+            // Diferencia Tarjeta/Yape
+            const diferenciaTarjeta = tarjetaContado - tarjetaSistema;
+            
+            // Diferencia Total (Efectivo + Tarjeta)
+            const diferenciaTotal = diferenciaEfectivo + diferenciaTarjeta;
+
+            // Mostrar la sección de previsualización
+            previsualizacionCierre.style.display = 'block';
+
+            // Llenar la tabla de previsualización
+            prevFondoFijo.textContent = `S/ ${fondoFijo.toFixed(2)}`;
+            prevTarjetaYapeContado.textContent = `S/ ${tarjetaContado.toFixed(2)}`;
+            prevEfectivoContado.textContent = `S/ ${efectivoContado.toFixed(2)}`;
+            prevDiferenciaEfectivo.textContent = `S/ ${Math.abs(diferenciaEfectivo).toFixed(2)}`;
+            prevDiferenciaTarjeta.textContent = `S/ ${Math.abs(diferenciaTarjeta).toFixed(2)}`;
+            prevDiferenciaTotal.textContent = `S/ ${Math.abs(diferenciaTotal).toFixed(2)}`;
+
+
+            // Lógica para el estado de la caja
+            const tolerancia = 0.05; // 5 céntimos
+            const cuadreEfectivoOK = Math.abs(diferenciaEfectivo) <= tolerancia;
+            const cuadreTarjetaOK = Math.abs(diferenciaTarjeta) <= tolerancia;
+            
+            // Aplicar colores a las diferencias
+            function aplicarColorDiferencia(elemento, diferencia) {
+                elemento.classList.remove('text-success', 'text-danger', 'text-primary');
+                if (Math.abs(diferencia) <= tolerancia) {
+                    elemento.classList.add('text-primary');
+                } else if (diferencia > 0) {
+                    elemento.classList.add('text-success'); // Sobrante
+                } else {
+                    elemento.classList.add('text-danger'); // Faltante
+                }
+            }
+            
+            aplicarColorDiferencia(prevDiferenciaEfectivo, diferenciaEfectivo);
+            aplicarColorDiferencia(prevDiferenciaTarjeta, diferenciaTarjeta);
+            aplicarColorDiferencia(prevDiferenciaTotal, diferenciaTotal);
+            
+            prevEstadoCaja.classList.remove('bg-success', 'bg-danger', 'bg-secondary');
+
+            let estadoTexto = '';
+
+            if (cuadreEfectivoOK && cuadreTarjetaOK) {
+                estadoTexto = 'CAJA CUADRADA CORRECTAMENTE.';
+                prevEstadoCaja.classList.add('bg-success');
+            } else {
+                estadoTexto = 'ATENCIÓN: EXISTE DESCUADRE EN EFECTIVO Y/O TARJETA.';
+                prevEstadoCaja.classList.add('bg-danger');
+            }
+
+            prevEstadoCaja.textContent = estadoTexto;
+        });
+    });
+</script>
+</html>

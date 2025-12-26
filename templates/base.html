@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Botica POS | {% block title %}{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
+          rel="stylesheet" 
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
+          crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        /* Estilos del Sidebar */
+        #sidebar-wrapper {
+            min-height: 100vh;
+            margin-left: -15rem;
+            transition: margin .25s ease-out;
+        }
+
+        #sidebar-wrapper .sidebar-heading {
+            padding: 0.875rem 1.25rem;
+            font-size: 1.2rem;
+        }
+
+        #sidebar-wrapper .list-group {
+            width: 15rem;
+        }
+        
+        /* Estilo para los separadores de menú */
+        .sidebar-separator {
+            background-color: #38424a; /* Un color más oscuro que el fondo (bg-dark) */
+            color: #ccc;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            border-top: 1px solid #4a545c;
+            border-bottom: 1px solid #2e353c;
+        }
+
+        #page-content-wrapper {
+            min-width: 100vw;
+        }
+
+        #wrapper.toggled #sidebar-wrapper {
+            margin-left: 0;
+        }
+
+        @media (min-width: 768px) {
+            #sidebar-wrapper {
+                margin-left: 0;
+            }
+
+            #page-content-wrapper {
+                min-width: 0;
+                width: 100%;
+            }
+
+            #wrapper.toggled #sidebar-wrapper {
+                margin-left: -15rem;
+            }
+        }
+
+        .table-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="d-flex" id="wrapper">
+        
+        {% if current_user.is_authenticated %}
+        <div class="border-end bg-dark" id="sidebar-wrapper">
+            <div class="sidebar-heading bg-primary text-white">
+                <i class="bi bi-shield-fill-plus me-2"></i> Botica POS
+            </div>
+            
+            <div class="list-group list-group-flush">
+                
+                <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-speedometer me-2"></i> Dashboard
+                </a>
+             
+                {# --- OPERACIONES DIARIAS --- #}
+                <div class="sidebar-separator">Operaciones</div>
+                
+                {% if current_user.role == 'Admin' %}
+                <a href="{{ url_for('seleccionar_farmacia_ventas') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-shop me-2"></i> Ventas (Seleccionar Sucursal)
+                </a>
+                {% else %}
+                <a href="{{ url_for('pantalla_ventas') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-cart-fill me-2"></i> Ventas
+                </a>
+                {% endif %}
+                
+                {% if current_user.role == 'Empleado' or current_user.role == 'Admin' %}
+                <a href="{{ url_for('mis_ventas') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-journal-text me-2"></i> Mis Ventas del Día
+                </a>
+                {% endif %}
+
+                {# --- GESTIÓN DE INVENTARIO Y COMPRAS (Admin) --- #}
+                {% if current_user.role == 'Admin' %}
+                <div class="sidebar-separator">Inventario y Stock</div>
+
+                <a href="{{ url_for('gestion_stock') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-box me-2"></i> Gestión Operativa de Stock
+                </a>
+                <a href="{{ url_for('registro_compra') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-truck me-2"></i> Registrar Compras
+                </a>
+                {% endif %}
+
+                {# --- ADMINISTRACIÓN GENERAL (Admin) --- #}
+                {% if current_user.role == 'Admin' %}
+                <div class="sidebar-separator">Administración</div>
+                
+                <a href="{{ url_for('gestion_usuarios') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-people-fill me-2"></i> Gestión de Usuarios
+                </a>
+                
+                <a href="{{ url_for('agregar_farmacia') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-shop me-2"></i> Crear Nueva Sucursal
+                </a>
+                {% endif %}
+
+                {# --- REPORTES FINANCIEROS (Admin) --- #}
+                {% if current_user.role == 'Admin' %}
+                <div class="sidebar-separator">Reportes y Finanzas</div>
+                
+                <a href="{{ url_for('reporte_global') }}" class="list-group-item list-group-item-action bg-dark text-white p-3">
+                    <i class="bi bi-bar-chart-fill me-2"></i> Reporte de Utilidad Global
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+        {% endif %}
+        <div id="page-content-wrapper">
+            
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+                <div class="container-fluid">
+                    {% if current_user.is_authenticated %}
+                    <button class="btn btn-primary" id="sidebarToggle">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    {% endif %}
+                    <h5 class="ms-3 mb-0 text-primary">{% block page_heading %}{% endblock %}</h5>
+                    
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
+                            {% if current_user.is_authenticated %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle me-1"></i> 
+                                    <b>{{ current_user.username }}</b> ({{ current_user.role }})
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid mt-4">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category == 'success' and 'success' or category == 'error' and 'danger' or 'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </div>
+
+        </div>
+        </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
+            crossorigin="anonymous"></script>
+    
+    {% if current_user.is_authenticated %}
+    <script>
+        var sidebarToggle = document.getElementById('sidebarToggle');
+        var wrapper = document.getElementById('wrapper');
+
+        if (sidebarToggle && wrapper) {
+            sidebarToggle.onclick = function() {
+                wrapper.classList.toggle('toggled');
+            };
+        }
+    </script>
+    {% endif %}
+
+</body>
+</html>

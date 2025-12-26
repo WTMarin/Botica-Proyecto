@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Usuario: {{ user.username }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">✏️ Editar Usuario: {{ user.username }}</h1>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">Modificar Datos del Usuario</h5>
+            </div>
+            <div class="card-body">
+                
+                <form method="POST" action="{{ url_for('editar_usuario', user_id=user.id) }}">
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nombre de Usuario:</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="username" 
+                               name="username" 
+                               value="{{ user.username }}" 
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Nueva Contraseña (Dejar vacío para no cambiar):</label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="password" 
+                               name="password" 
+                               placeholder="Ingrese nueva contraseña si desea cambiarla">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Rol de Acceso:</label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="Empleado" {% if user.role == 'Empleado' %} selected {% endif %}>Empleado</option>
+                            <option value="Admin" {% if user.role == 'Admin' %} selected {% endif %}>Administrador</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="farmacia_id" class="form-label">Botica Asignada:</label>
+                        {# 🛑 CORRECCIÓN CLAVE: NO tiene 'required' #}
+                        <select class="form-select" id="farmacia_id" name="farmacia_id"> 
+                            
+                            {# Opción para desasignar (valor="0") #}
+                            <option value="0" {% if user.farmacia_id is none %} selected {% endif %}>
+                                -- Sin Asignar --
+                            </option>
+
+                            {% for botica in boticas %}
+                            <option value="{{ botica.id }}" {% if user.farmacia_id == botica.id %} selected {% endif %}>
+                                {{ botica.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 mt-3">Actualizar Usuario</button>
+                    {# ✅ Corregido el enlace de volver a la vista de gestión #}
+                    <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-secondary w-100 mt-2">Cancelar y Volver</a>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

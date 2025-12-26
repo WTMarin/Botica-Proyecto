@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-people me-2"></i> Gestión de Usuarios
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i> Crear Nuevo Usuario</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="username" class="form-label">Nombre de Usuario (*)</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="password" class="form-label">Contraseña (*)</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="role" class="form-label">Rol (*)</label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="Empleado" selected>Empleado</option>
+                        <option value="Admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="farmacia_id" class="form-label">Sucursal Asignada</label>
+                    <select class="form-select" id="farmacia_id" name="farmacia_id">
+                        <option value="0" selected>-- Sin Asignar --</option>
+                        {% for farmacia in farmacias %}
+                            <option value="{{ farmacia.id }}">{{ farmacia.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-success"><i class="bi bi-save me-2"></i> Guardar Nuevo Usuario</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-list-task me-2"></i> Listado de Usuarios</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre de Usuario</th>
+                        <th>Rol</th>
+                        <th>Sucursal Asignada</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            {{ user.username }}
+                            {% if user.id == current_user.id %}
+                                <span class="badge bg-secondary ms-2">Tú</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if user.role == 'Admin' %}bg-danger
+                                {% else %}bg-info
+                                {% endif %}">
+                                {{ user.role }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ user.farmacia.nombre if user.farmacia else 'Sin Asignar' }}
+                        </td>
+                        <td>
+
+
+
+                            <a href="{{ url_for('editar_usuario', user_id=user.id) }}" class="btn btn-sm btn-warning" title="Editar Usuario">
+                                <i class="bi bi-pencil-square"></i> Editar
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#deleteUserModal" 
+                                data-user-id="{{ user.id }}" 
+                                data-user-name="{{ user.username }}"
+                                {% if user.id == current_user.id %}disabled{% endif %}>
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteUserModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro de que desea eliminar al usuario **<span id="modal-username" class="fw-bold"></span>**?
+                Esta acción es irreversible.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteUserForm" method="GET">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var deleteUserModal = document.getElementById('deleteUserModal');
+        deleteUserModal.addEventListener('show.bs.modal', function (event) {
+            // Botón que disparó el modal
+            var button = event.relatedTarget;
+            var userId = button.getAttribute('data-user-id');
+            var userName = button.getAttribute('data-user-name');
+            
+            var modalUsername = deleteUserModal.querySelector('#modal-username');
+            var form = deleteUserModal.querySelector('#deleteUserForm');
+
+            modalUsername.textContent = userName;
+            
+            // ✅ Solución al error: Generamos la URL base y luego la reemplazamos con el ID real
+            // Esto asegura que la URL esté disponible en tiempo de renderizado de la plantilla.
+            form.action = '{{ url_for('eliminar_usuario', user_id=0) }}'.replace('0', userId);
+        });
+    });
+</script>
+
+{% endblock %}

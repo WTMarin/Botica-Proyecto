@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Ventas en {{ farmacia_actual.nombre }}{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-cart-fill me-2"></i> Módulo de Ventas | {{ farmacia_actual.nombre }}
+{% endblock %}
+
+{% block content %}
+
+    {# --- FILA SUPERIOR: INVENTARIO DE PRODUCTOS (100% Ancho) --- #}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <i class="bi bi-box-seam me-2"></i> Inventario de Productos ({{ farmacia_actual.nombre }})
+                </div>
+                <div class="card-body">
+                    <input type="text" id="filtroProductos" class="form-control mb-3" placeholder="Buscar producto por nombre..." autofocus>
+                    
+                    {# Contenedor de las cards de productos #}
+                    <div id="listaProductos" class="row g-3" style="max-height: 400px; overflow-y: auto;">
+                        {% for prod in inventario %}
+                            {% set stock_class = 'bg-success' if prod.stock > 10 else ('bg-warning text-dark' if prod.stock > 0 and prod.stock <= 10 else 'bg-danger') %}
+                            
+                            <div class="col-6 col-md-4 col-lg-3 col-xl-2 product-card-wrapper" data-nombre="{{ prod.nombre|lower }}">
+                                <div class="card h-100 product-card shadow-sm border-0 {% if prod.stock == 0 %} border-danger {% endif %}">
+                                    <div class="card-body p-2 d-flex flex-column">
+                                        <h6 class="card-title mb-1 text-truncate">{{ prod.nombre }}</h6>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                                            {# Etiqueta de Stock #}
+                                            <span class="badge {{ stock_class }} me-2" data-stock="{{ prod.stock }}">
+                                                Stock: {{ prod.stock }}
+                                            </span>
+                                            
+                                            {# Precio y Botón de Acción #}
+                                            <div>
+                                                <span class="fw-bold text-success me-1">S/ {{ "%.2f"|format(prod.precio_de_venta) }}</span>
+                                                <button 
+                                                    class="btn btn-sm btn-success agregar-producto" 
+                                                    data-id="{{ prod.id }}" 
+                                                    data-nombre="{{ prod.nombre }}" 
+                                                    data-precio="{{ prod.precio_de_venta }}"
+                                                    data-stock="{{ prod.stock }}"
+                                                    {% if prod.stock == 0 %} disabled {% endif %}
+                                                >
+                                                    <i class="bi bi-plus-circle"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        
+                        {% if not inventario %}
+                            <div class="col-12"><p class="text-center text-muted mt-3">No hay productos registrados en esta sucursal.</p></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# --- FILA INFERIOR: CARRITO, PAGO Y TOTAL (100% Ancho) --- #}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-receipt me-2"></i> Detalle de Venta
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0" id="carritoTable">
+                            <thead class="bg-light sticky-top">
+                                <tr>
+                                    <th style="width: 35%">Producto</th>
+                                    <th class="text-center" style="width: 10%">Cant.</th>
+                                    <th class="text-end" style="width: 15%">P. Base</th>
+                                    <th class="text-center text-primary" style="width: 15%">P. Final (S/)</th> 
+                                    <th class="text-end" style="width: 15%">Total</th>
+                                    <th style="width: 10%"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="carritoBody">
+                                <tr><td colspan="6" class="text-center text-muted p-4">Añada productos para iniciar la venta.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-3 border-top">
+                        {# ZONA DE CONTROLES DE PAGO #}
+                        <div class="row align-items-end mb-3">
+                            
+                            {# Columna 1: Método de Pago (Siempre 4) #}
+                            <div class="col-12 col-md-4 mb-3 mb-md-0">
+                                <label for="metodoPago" class="form-label fw-bold">Método de Pago</label>
+                                <select id="metodoPago" class="form-select" disabled>
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="Efectivo" selected>Efectivo</option>
+                                    <option value="Transferencia">Transferencia (Yape/Plin)</option>
+                                    <option value="Mixto">Mixto (Efectivo + Transferencia)</option>
+                                </select>
+                            </div>
+
+                            {# Columna 2: Contenedor para la opción Mixta (Ocupa 4 unidades cuando es Mixto) #}
+                            <div class="col-12 col-md-4 row g-2" id="contenedorMixto" style="display: none;">
+                                
+                                <div class="col-6">
+                                    <label for="montoEfectivoMixto" class="form-label fw-bold mb-0" style="font-size: 0.9em;">Efectivo (S/)</label>
+                                    <input type="number" id="montoEfectivoMixto" class="form-control text-end" placeholder="0.00" value="" min="0" step="0.01">
+                                </div>
+                                
+                                <div class="col-6">
+                                    <label for="montoYapeMixto" class="form-label fw-bold mb-0" style="font-size: 0.9em;">Transferencia (S/)</label>
+                                    <input type="number" id="montoYapeMixto" class="form-control text-end" placeholder="0.00" value="" min="0" step="0.01">
+                                </div>
+                            </div>
+                            
+                            {# Columna 3: Espacio de Relleno (Se ajustará a 4 u 8 en JS para mantener el Total a la derecha) #}
+                            <div class="col-12 col-md-4 mb-3 mb-md-0" id="contenedorEspacioRelleno" style="display: block;">
+                                </div>
+
+                            {# Columna 4: Total y Botón (Siempre 4) #}
+                            <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0">
+                                <h3 class="mb-2">Total a Pagar: <span id="totalVenta" class="text-danger fw-bolder">S/ 0.00</span></h3>
+                                <button id="procesarVentaBtn" class="btn btn-lg btn-primary w-100" disabled>
+                                    <i class="bi bi-check-circle-fill me-2"></i> Procesar Venta
+                                </button>
+                                
+                                {# Campo oculto para enviar el monto pagado (siempre igual al total para Efectivo/Transf) #}
+                                <input type="hidden" id="montoPagado" value="0.00">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let carrito = {};
+
+    // Elementos del DOM para el pago
+    const metodoPagoSelect = document.getElementById('metodoPago');
+    const montoPagadoInput = document.getElementById('montoPagado'); // Campo oculto
+    const contenedorMixto = document.getElementById('contenedorMixto');
+    const contenedorEspacioRelleno = document.getElementById('contenedorEspacioRelleno'); // Contenedor de relleno
+    const montoEfectivoMixto = document.getElementById('montoEfectivoMixto');
+    const montoYapeMixto = document.getElementById('montoYapeMixto');
+
+
+    /**
+     * @brief Controla la visibilidad y valor de los inputs de pago
+     * dependiendo del método seleccionado, y ajusta el layout.
+     */
+    function manejarMetodoPago(metodo) {
+        const totalVentaText = document.getElementById('totalVenta').textContent;
+        const totalGeneral = parseFloat(totalVentaText.replace('S/ ', '')) || 0;
+
+        // Resetear visibilidad general
+        contenedorMixto.style.display = 'none';
+        contenedorEspacioRelleno.style.display = 'none';
+
+        // Reiniciar Monto Pagado 
+        montoPagadoInput.value = totalGeneral.toFixed(2); 
+
+        if (metodo === 'Efectivo' || metodo === 'Transferencia') {
+            // Layout deseado: [Método (4)] + [Espacio de Relleno (4)] + [Total (4)] = 12
+            
+            contenedorEspacioRelleno.style.display = 'block';
+            
+            // Reajustar el ancho de contenedorEspacioRelleno para que ocupe el lugar de la Columna 2.
+            // Esto asegura que el total (Columna 4) se alinee a la derecha.
+            // Para que la Columna 4 se mantenga a la derecha, el relleno debe ser col-md-4
+            contenedorEspacioRelleno.classList.remove('col-md-8');
+            contenedorEspacioRelleno.classList.add('col-md-4'); 
+            
+        } else if (metodo === 'Mixto') {
+            // Layout: [Método (4)] + [Mixto (4)] + [Total (4)] = 12
+            
+            contenedorMixto.style.display = 'flex';
+            
+            // Limpiar inputs mixtos
+            montoEfectivoMixto.value = '';
+            montoYapeMixto.value = ''; 
+            handleMixtoChange(); 
+        }
+    }
+
+    /**
+     * @brief Actualiza el stock visible y el estado de los botones '+' en las tarjetas de producto.
+     */
+    function actualizarStockCards() {
+        const productWrappers = document.querySelectorAll('.product-card-wrapper');
+        
+        productWrappers.forEach(wrapper => {
+            const button = wrapper.querySelector('.agregar-producto');
+            const stockBadge = wrapper.querySelector('.badge');
+            const id = button.dataset.id;
+            
+            const stockInicial = parseInt(button.dataset.stock); 
+            const stockEnCarrito = carrito[id] ? carrito[id].cantidad : 0;
+            const stockDisponible = stockInicial - stockEnCarrito;
+
+            // Actualizar la etiqueta de Stock
+            if (stockBadge) {
+                stockBadge.textContent = `Stock: ${stockInicial}`; 
+            }
+
+            // Deshabilita el botón si no queda stock disponible o si ya se agregaron todos.
+            if (stockDisponible <= 0) {
+                button.disabled = true;
+                wrapper.querySelector('.product-card').classList.add('border-danger');
+            } else {
+                button.disabled = false;
+                wrapper.querySelector('.product-card').classList.remove('border-danger');
+            }
+        });
+    }
+
+
+    /**
+     * @brief Función que actualiza la tabla del carrito y el total general. 
+     * También sincroniza los campos de pago.
+     */
+    function actualizarCarrito() {
+        const carritoBody = document.getElementById('carritoBody');
+        const totalVentaSpan = document.getElementById('totalVenta');
+        const procesarVentaBtn = document.getElementById('procesarVentaBtn');
+        let totalGeneral = 0;
+        
+        carritoBody.innerHTML = '';
+
+        const productosEnCarrito = Object.keys(carrito).filter(id => carrito[id].cantidad > 0);
+
+        if (productosEnCarrito.length === 0) {
+            carritoBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4">Añada productos para iniciar la venta.</td></tr>';
+            procesarVentaBtn.disabled = true;
+            totalVentaSpan.textContent = 'S/ 0.00';
+            
+            metodoPagoSelect.disabled = true;
+            metodoPagoSelect.value = 'Efectivo'; 
+            manejarMetodoPago('Efectivo'); 
+            actualizarStockCards(); 
+            return;
+        }
+        
+        metodoPagoSelect.disabled = false;
+        
+        productosEnCarrito.forEach(id => {
+            const item = carrito[id];
+            
+            const subtotal = item.cantidad * item.precio_final;
+            totalGeneral += subtotal;
+
+            const row = `
+                <tr>
+                    <td class="align-middle text-truncate" style="max-width: 200px;">${item.nombre}</td>
+                    <td class="text-center align-middle">
+                        <input type="number" class="form-control form-control-sm text-center cantidad-input" 
+                                data-id="${id}" value="${item.cantidad}" min="1" max="${item.stock_actual}" 
+                                style="width: 55px; display: inline-block;">
+                    </td>
+                    <td class="text-end text-muted align-middle">S/ ${item.precio_original.toFixed(2)}</td>
+                    <td class="text-center align-middle">
+                        <input type="number" class="form-control form-control-sm text-center precio-final-input border-primary fw-bold" 
+                                data-id="${id}" value="${item.precio_final.toFixed(2)}" min="0.01" step="0.01" 
+                                style="width: 75px; display: inline-block;">
+                    </td>
+                    <td class="text-end fw-bold align-middle">S/ ${subtotal.toFixed(2)}</td>
+                    <td class="align-middle text-center">
+                        <button class="btn btn-sm btn-outline-danger remover-producto" data-id="${id}"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+            carritoBody.innerHTML += row;
+        });
+
+        totalVentaSpan.textContent = `S/ ${totalGeneral.toFixed(2)}`;
+        procesarVentaBtn.disabled = false;
+        
+        const metodoActual = metodoPagoSelect.value;
+        if (metodoActual === 'Efectivo' || metodoActual === 'Transferencia') {
+            montoPagadoInput.value = totalGeneral.toFixed(2);
+        } else if (metodoActual === 'Mixto') {
+            handleMixtoChange(); 
+        }
+        
+        actualizarStockCards(); 
+    }
+    
+    // Función para manejar el cambio en los inputs Mixtos
+    function handleMixtoChange() {
+        const efectivo = parseFloat(montoEfectivoMixto.value) || 0;
+        const yape = parseFloat(montoYapeMixto.value) || 0;
+        const totalMixto = efectivo + yape;
+        
+        montoPagadoInput.value = totalMixto.toFixed(2); 
+    }
+
+    // --- EVENT LISTENERS ---
+
+    // 1. Evento para el selector de Método de Pago
+    metodoPagoSelect.addEventListener('change', () => {
+        manejarMetodoPago(metodoPagoSelect.value);
+    });
+    
+    // 2. Eventos para inputs Mixtos
+    montoEfectivoMixto.addEventListener('input', handleMixtoChange);
+    montoYapeMixto.addEventListener('input', handleMixtoChange);
+    
+    // 3. Evento para procesar la venta (Fetch API)
+    document.getElementById('procesarVentaBtn').addEventListener('click', async () => {
+        const totalVentaText = document.getElementById('totalVenta').textContent;
+        const totalVentaValor = parseFloat(totalVentaText.replace('S/ ', '')) || 0;
+        
+        const metodoPago = metodoPagoSelect.value;
+        let montoPagado = parseFloat(montoPagadoInput.value) || 0; 
+        
+        if (!metodoPago || totalVentaValor === 0) {
+            alert("ERROR: Por favor, añada productos y seleccione un Método de Pago.");
+            return;
+        }
+
+        // VALIDACIÓN DE PAGO MIXTO
+        if (metodoPago === 'Mixto') {
+            const efectivoMixto = parseFloat(montoEfectivoMixto.value) || 0;
+            const yapeMixto = parseFloat(montoYapeMixto.value) || 0;
+            const sumaMixta = efectivoMixto + yapeMixto;
+
+            if (sumaMixta.toFixed(2) != totalVentaValor.toFixed(2)) {
+                 alert("ERROR: La suma de Efectivo y Transferencia (S/ " + sumaMixta.toFixed(2) + ") no es igual al Total a Pagar (S/ " + totalVentaValor.toFixed(2) + ") en pago Mixto.");
+                 return;
+            }
+            montoPagado = totalVentaValor; 
+        }
+        
+        // Asignar el monto pagado al total para Efectivo/Transferencia (pago exacto)
+        if (metodoPago === 'Efectivo' || metodoPago === 'Transferencia') {
+            montoPagado = totalVentaValor; 
+        }
+
+        const productosParaVenta = Object.keys(carrito)
+            .filter(id => carrito[id].cantidad > 0)
+            .map(id => ({
+                id: parseInt(id),
+                cantidad: carrito[id].cantidad,
+                precio_final: carrito[id].precio_final 
+            }));
+        
+        
+        if (!confirm(`¿Confirmar la venta por ${totalVentaText} con método ${metodoPago}?`)) {
+            return;
+        }
+
+        const btn = document.getElementById('procesarVentaBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+        
+        const datosVenta = { 
+            productos: productosParaVenta,
+            metodo_pago: metodoPago, 
+            monto_pagado: montoPagado 
+        };
+        
+        if (metodoPago === 'Mixto') {
+            datosVenta.monto_efectivo_mixto = parseFloat(montoEfectivoMixto.value) || 0;
+            datosVenta.monto_yape_mixto = parseFloat(montoYapeMixto.value) || 0;
+        }
+
+        try {
+            const response = await fetch('{{ url_for("pantalla_ventas", farmacia_id=farmacia_actual.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datosVenta)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert(result.message);
+                carrito = {};
+                window.location.href = '{{ url_for("pantalla_ventas", farmacia_id=farmacia_actual.id) }}';
+            } else {
+                alert(`Error al vender: ${result.message}`);
+            }
+
+        } catch (error) {
+            alert(`Error de conexión: ${error.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Procesar Venta';
+        }
+    });
+
+    // 4. Eventos del carrito (Agregar, Remover, Cantidad, Precio Final, Filtro)
+
+    document.getElementById('listaProductos').addEventListener('click', (e) => {
+        const button = e.target.closest('.agregar-producto');
+
+        if (button) {
+            const id = button.dataset.id;
+            const nombre = button.dataset.nombre;
+            const precio = parseFloat(button.dataset.precio);
+            const stock = parseInt(button.dataset.stock);
+
+            if (carrito[id]) {
+                if (carrito[id].cantidad < stock) {
+                    carrito[id].cantidad++;
+                } else {
+                    alert(`Máximo stock (${stock}) alcanzado para ${nombre}.`);
+                }
+            } else {
+                carrito[id] = { 
+                    id: id, 
+                    nombre: nombre, 
+                    precio_original: precio, 
+                    cantidad: 1, 
+                    stock_actual: stock,
+                    precio_final: precio 
+                };
+            }
+            actualizarCarrito();
+        }
+    });
+
+    document.getElementById('carritoTable').addEventListener('click', (e) => {
+        if (e.target.closest('.remover-producto')) {
+            const id = e.target.closest('.remover-producto').dataset.id;
+            delete carrito[id];
+            actualizarCarrito();
+        }
+    });
+
+    document.getElementById('carritoTable').addEventListener('change', (e) => {
+        const target = e.target;
+        const id = target.dataset.id;
+
+        if (target.classList.contains('cantidad-input')) {
+            let nuevaCantidad = parseInt(target.value);
+            const maxStock = parseInt(target.max);
+
+            if (isNaN(nuevaCantidad) || nuevaCantidad < 1) {
+                nuevaCantidad = 1;
+            } else if (nuevaCantidad > maxStock) {
+                nuevaCantidad = maxStock;
+                alert(`Solo quedan ${maxStock} unidades disponibles.`);
+            }
+
+            target.value = nuevaCantidad; 
+            if (carrito[id]) {
+                carrito[id].cantidad = nuevaCantidad;
+            }
+            actualizarCarrito();
+        } 
+        
+        else if (target.classList.contains('precio-final-input')) {
+            let nuevoPrecioFinal = parseFloat(target.value);
+            
+            if (isNaN(nuevoPrecioFinal) || nuevoPrecioFinal <= 0) {
+                nuevoPrecioFinal = carrito[id].precio_original; 
+                alert('El precio final debe ser un valor positivo.');
+            }
+
+            nuevoPrecioFinal = parseFloat(nuevoPrecioFinal.toFixed(2));
+            target.value = nuevoPrecioFinal;
+            
+            if (carrito[id]) {
+                carrito[id].precio_final = nuevoPrecioFinal;
+            }
+            actualizarCarrito();
+        }
+    });
+
+    document.getElementById('filtroProductos').addEventListener('keyup', function() {
+        const filtro = this.value.toLowerCase();
+        const cards = document.querySelectorAll('.product-card-wrapper');
+        
+        cards.forEach(card => {
+            const nombreProducto = card.getAttribute('data-nombre');
+            if (nombreProducto && nombreProducto.includes(filtro)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+
+    // 5. Inicializar el carrito
+    document.addEventListener('DOMContentLoaded', () => {
+        metodoPagoSelect.value = 'Efectivo';
+        actualizarCarrito(); 
+    });
+</script>
+{% endblock %}

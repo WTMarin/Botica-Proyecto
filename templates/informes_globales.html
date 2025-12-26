@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte Global{% endblock %}
+
+{% block page_heading %}Reporte GLOBAL de Boticas (Todas las Sucursales){% endblock %}
+
+{% block content %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[action="{{ url_for('reporte_global') }}"]');
+            
+            // Asumiendo que has envuelto todos los filtros en un solo formulario
+            if (form) {
+                // Envía el formulario si se cambia la farmacia
+                const farmaciaSelect = document.getElementById('farmacia_id');
+                if (farmaciaSelect) {
+                    farmaciaSelect.addEventListener('change', function() {
+                        form.submit();
+                    });
+                }
+
+                // Envía el formulario si se cambia el vendedor
+                const vendedorSelect = document.getElementById('filtro_vendedor_id');
+                if (vendedorSelect) {
+                    vendedorSelect.addEventListener('change', function() {
+                        form.submit();
+                    });
+                }
+            }
+        });
+    </script>
+    
+    {# ================================================================= #}
+    {# FIN BLOQUE DE FILTROS #}
+    {# ================================================================= #}
+    <h3>1. Resumen Financiero GLOBAL (Últimas 200 Ventas)</h3>
+    <p>Ventas Totales (Período): S/ {{ total_vendido | round(2) }}</p>
+    <p>Utilidad Neta Realizada (Período): S/ {{ utilidad_neta_periodo | round(2) }}</p>
+
+    <hr>
+    
+    <h3>2. Resumen de Inventario (Valor Potencial GLOBAL)</h3>
+    <p>Valor Total del Stock (Costo): S/ {{ valor_costo | round(2) }}</p>
+    <p>Valor Total del Stock (Venta): S/ {{ valor_venta | round(2) }}</p>
+    <p>Utilidad Potencial en Stock: S/ {{ utilidad_potencial | round(2) }}</p>
+
+    <h3>3. Stock Consolidado Global por Producto</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Laboratorio</th>
+                <th>Stock Total</th>
+                <th>Costo Unitario (último PMP)</th>
+                <th>Precio Venta</th>
+                <th>% Utilidad</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in inventario_consolidado %}
+            <tr>
+                <td>{{ item.nombre }}</td>
+                <td>{{ item.laboratorio }}</td>
+                <td>{{ item.stock }}</td>
+                <td>{{ item.costo_unitario_pmp }}</td>
+                <td>{{ item.precio_de_venta }}</td>
+                <td>{{ item.utilidad_porcentaje }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h3>4. Inventario Detallado por Sucursal</h3>
+    {% for farmacia, inventario in inventario_por_farmacia.items() %}
+    <h4>- {{ farmacia }}</h4>
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Laboratorio</th>
+                <th>Stock Actual</th>
+                <th>Costo Unitario</th>
+                <th>Precio Venta</th>
+                <th>% Utilidad</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in inventario %}
+            <tr>
+                <td>{{ item.nombre }}</td>
+                <td>{{ item.laboratorio }}</td>
+                <td>{{ item.stock }}</td>
+                <td>{{ item.costo_unitario_pmp }}</td>
+                <td>{{ item.precio_de_venta }}</td>
+                <td>{{ item.utilidad_porcentaje }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}
+    
+    <hr>
+
+    <h3>5. Historial de Ventas (Últimas 300)</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Fecha/Hora</th>
+                <th>Sucursal</th>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>Total Venta</th>
+                <th>Vendedor</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for venta in ventas_lista %}
+            <tr>
+                <td>{{ venta.fecha }}</td>
+                <td>{{ venta.farmacia_nombre }}</td>
+                <td>{{ venta.producto }}</td>
+                <td>{{ venta.cantidad }}</td>
+                <td>{{ venta.total }}</td>
+                <td>{{ venta.vendedor }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    
+{% endblock %}

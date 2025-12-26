@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Traspaso de Stock{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-truck me-2"></i> Traspaso de Stock
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Mover Inventario entre Sucursales</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Esta operación moverá el stock y registrará un ajuste en ambas sucursales.
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold">Producto a Transferir:</h6>
+                    <span class="badge bg-primary fs-5">{{ producto_origen.nombre }}</span>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <h6 class="fw-bold">Sucursal Origen:</h6>
+                        <p class="mb-0 text-dark">{{ farmacia_origen.nombre }}</p>
+                        <p class="small text-muted">Stock actual: <span class="fw-bold">{{ producto_origen.stock }} unidades</span></p>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="fw-bold">Costo Promedio (PMP)</h6>
+                        <p class="mb-0 text-dark">S/ {{ "%.2f"|format(producto_origen.costo_promedio) }}</p>
+                        <p class="small text-muted">Este costo se mantendrá en destino.</p>
+                    </div>
+                </div>
+
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="cantidad_transferir" class="form-label fw-bold">Cantidad a Transferir (*)</label>
+                        <input type="number" class="form-control form-control-lg" id="cantidad_transferir" name="cantidad_transferir" required min="1" max="{{ producto_origen.stock }}" placeholder="Máximo: {{ producto_origen.stock }}">
+                        <div class="form-text">Máxima cantidad disponible: {{ producto_origen.stock }} unidades.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="farmacia_destino_id" class="form-label fw-bold">Seleccionar Sucursal de Destino (*)</label>
+                        <select class="form-select form-select-lg" id="farmacia_destino_id" name="farmacia_destino_id" required>
+                            <option value="" disabled selected>Seleccione la farmacia de destino</option>
+                            {% for farmacia in farmacias_destino %}
+                                <option value="{{ farmacia.id }}">{{ farmacia.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-info btn-lg w-100 mt-3 text-white">
+                        <i class="bi bi-truck me-2"></i> Confirmar Traspaso
+                    </button>
+                    <a href="{{ url_for('gestion_stock', farmacia_id=producto_origen.farmacia_id) }}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

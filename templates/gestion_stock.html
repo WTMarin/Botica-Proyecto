@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Stock{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-boxes me-2"></i> Gestión de Inventario | {{ farmacia_nombre }}
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-shop me-2"></i> Sucursal Seleccionada</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" id="farmaciaSelectorForm">
+            <div class="input-group">
+                <label class="input-group-text" for="farmacia_select">Seleccionar Sucursal:</label>
+                <select class="form-select" id="farmacia_select" name="farmacia_id" onchange="document.getElementById('farmaciaSelectorForm').submit();">
+                    {% for farmacia in farmacias_para_selector %}
+                        <option value="{{ farmacia.id }}" {% if farmacia.id == farmacia_id %}selected{% endif %}>
+                            {{ farmacia.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i> Stock en Tiempo Real</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-striped table-hover table-sm">
+                <thead class="sticky-top bg-light shadow-sm">
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th class="text-center">Stock</th>
+                        <th class="text-end">Costo Promedio (PMP)</th>
+                        <th class="text-end">Precio Venta (S/)</th> 
+                        <th class="text-center" style="min-width: 280px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventario %}
+  
+                    <tr>
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.nombre }}</td>
+                        <td class="text-center">
+                            <span class="badge
+                                {% if item.stock <= 5 and item.stock > 0 %}bg-warning text-dark
+                                {% elif item.stock == 0 %}bg-danger
+                                {% else %}bg-success
+                                {% endif %}">
+                                {{ item.stock }}
+                            </span>
+                        </td>
+                        
+                        <td class="text-end">{{ item.pmp }}</td>
+
+                        <td class="text-end" style="min-width: 150px;">
+                            <form method="POST" action="{{ url_for('modificar_precio_venta', inventario_id=item.id) }}" class="d-inline-flex align-items-center">
+                                <input type="number" step="0.01" min="0" name="nuevo_precio"
+                                    
+                                    value="{{ '%.2f' | format(item.precio_venta | replace('S/ ', '') | float | default(0.00)) }}"
+                                    
+                                    class="form-control form-control-sm text-end me-1"
+                                    style="width: 85px;" required>
+                                <button type="submit" class="btn btn-sm btn-success p-0 px-1" title="Actualizar Precio">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </form>
+                        </td>
+
+
+
+
+                        
+
+                        <td class="text-center" style="min-width: 280px;">
+                            <a href="{{ url_for('ajustar_stock', inventario_id=item.id) }}" class="btn btn-sm btn-warning me-2">Ajustar</a>
+                            <a href="{{ url_for('traspaso_stock', inventario_id=item.id) }}" class="btn btn-sm btn-info text-white me-2">Traspaso</a>
+                            
+                            <form method="POST" action="{{ url_for('eliminar_producto', producto_id=item.id) }}"
+                                onsubmit="return confirm('¿Está seguro de que desea eliminar permanentemente el producto {{ item.nombre }}? Esta acción es IRREVERSIBLE y podría afectar reportes anteriores.');"
+                                class="d-inline-block">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not inventario %}
+            <div class="alert alert-info text-center mt-3">
+                No hay productos registrados en el inventario de **{{ farmacia_nombre }}**.
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de Compras{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">📦 Registro de Compra (Entrada Masiva)</h1>
+
+<div class="row">
+    
+    {# --- Columna de Añadir Producto --- #}
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">Añadir Producto a la Lista</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="farmacia_id_select" class="form-label fw-bold">Sucursal de Destino</label>
+                    <select class="form-select" id="farmacia_id_select" name="farmacia_id_select" required>
+                        <option value="0" disabled selected>Seleccione la Sucursal</option>
+                        {% for farmacia in farmacias %}
+                            <option value="{{ farmacia.id }}">{{ farmacia.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <hr>
+
+                <form id="add-item-form">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre del Producto:</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required onchange="fetchPreviousPrice()">
+                    </div>
+
+                    <div id="previous-price-alert" class="alert alert-warning py-2 my-2" style="display:none;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="laboratorio" class="form-label">Laboratorio:</label>
+                        <input type="text" class="form-control" id="laboratorio" name="laboratorio" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cantidad_comprada" class="form-label">Cantidad Comprada:</label>
+                        <input type="number" class="form-control" id="cantidad_comprada" name="cantidad_comprada" min="1" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="costo_total_compra" class="form-label">Costo Total Compra (S/):</label>
+                            <input type="number" step="0.01" class="form-control" id="costo_total_compra" name="costo_total_compra" min="0.01" required oninput="calculateUnitCostAndProfit()">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="precio_de_venta" class="form-label">Precio de Venta (S/):</label>
+                            <input type="number" step="0.01" class="form-control" id="precio_de_venta" name="precio_de_venta" min="0.01" required oninput="calculateUnitCostAndProfit()">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 my-2 small" id="unit-cost-info">
+                        Costo Unitario: S/ 0.00 | Utilidad Bruta: 0.00%
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 mt-2">
+                        <i class="bi bi-plus-circle me-2"></i> Añadir a la Lista
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# --- Columna de Lista de Compras --- #}
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Lista de Productos a Ingresar (<span id="item-count">0</span> items)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-striped table-sm">
+                        <thead class="sticky-top bg-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th>Laboratorio</th>
+                                <th class="text-center">Cant.</th>
+                                <th class="text-end">Costo Total</th>
+                                <th class="text-end">P. Venta</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchaseListBody">
+                            <tr><td colspan="6" class="text-center text-muted">Añada productos usando el formulario de la izquierda.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 class="mt-3 text-end">Total Compra: <span id="total-calculado" class="text-success">S/ 0.00</span></h4>
+
+                <form id="form_finalizar_compra" method="POST" action="{{ url_for('registro_compra') }}" class="mt-4">
+                    <input type="hidden" name="listaComprasData" id="listaComprasData">
+                    <input type="hidden" name="farmacia_id" id="farmacia_id_hidden"> 
+                    <button type="submit" id="finalize-purchase-btn" class="btn btn-success btn-lg w-100" disabled>
+                        <i class="bi bi-check-circle-fill me-2"></i> Finalizar Ingreso (0 items)
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variables globales
+    let purchaseList = [];
+    const nombreInput = document.getElementById('nombre');
+    const cantidadInput = document.getElementById('cantidad_comprada');
+    const costoTotalInput = document.getElementById('costo_total_compra');
+    const precioVentaInput = document.getElementById('precio_de_venta');
+    const laboratorioInput = document.getElementById('laboratorio');
+    const unitCostInfo = document.getElementById('unit-cost-info');
+    const previousPriceAlert = document.getElementById('previous-price-alert');
+    const farmaciaSelect = document.getElementById('farmacia_id_select');
+
+
+    // 1. CÁLCULO DE COSTO UNITARIO Y UTILIDAD
+    function calculateUnitCostAndProfit() {
+        const cantidad = parseFloat(cantidadInput.value || 0);
+        const costoTotal = parseFloat(costoTotalInput.value || 0);
+        const precioVenta = parseFloat(precioVentaInput.value || 0);
+        
+        let costoUnitario = 0.00;
+        let utilidadPorcentaje = 0.00;
+
+        if (cantidad > 0 && costoTotal > 0) {
+            costoUnitario = costoTotal / cantidad;
+        }
+
+        if (costoUnitario > 0) {
+            const utilidad = precioVenta - costoUnitario;
+            utilidadPorcentaje = (utilidad / costoUnitario) * 100;
+        }
+
+        unitCostInfo.innerHTML = `Costo Unitario: S/ ${costoUnitario.toFixed(2)} | Utilidad Bruta: ${utilidadPorcentaje.toFixed(2)}%`;
+    }
+
+    // 2. FUNCIÓN PARA BUSCAR PRECIO ANTERIOR (AHORA USA EL API DE FLASK)
+    async function fetchPreviousPrice() {
+        const nombreProducto = nombreInput.value.trim();
+        const farmaciaId = farmaciaSelect.value;
+        
+        previousPriceAlert.style.display = 'none';
+        previousPriceAlert.innerHTML = '';
+
+        if (!nombreProducto || farmaciaId === '0') {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/get_product_price?nombre=${encodeURIComponent(nombreProducto)}&farmacia_id=${farmaciaId}`);
+            if (!response.ok) {
+                throw new Error('Error al conectar con la API de precios.');
+            }
+            const data = await response.json();
+
+            if (data.exists) {
+                // 🟢 El producto existe: Muestra la recomendación
+                const p_ant = data.precio_anterior;
+                const c_ant = data.costo_promedio;
+                const stock = data.stock;
+                
+                precioVentaInput.value = p_ant.toFixed(2); // Establecer el precio anterior
+                calculateUnitCostAndProfit(); // Recalcular con el precio de venta anterior
+
+                let mensaje = `¡PRODUCTO EXISTENTE! | Stock actual: ${stock}u.`;
+                mensaje += `<br>Precio de Venta anterior: **S/ ${p_ant.toFixed(2)}**`;
+                
+                if (c_ant > 0) {
+                    const utilidad_ant = ((p_ant - c_ant) / c_ant) * 100;
+                    mensaje += ` | Utilidad anterior (sobre PMP S/${c_ant.toFixed(2)}): **${utilidad_ant.toFixed(2)}%**`;
+                }
+
+                previousPriceAlert.innerHTML = mensaje;
+                previousPriceAlert.style.display = 'block';
+
+            } else {
+                 // Producto nuevo: Solo mostrar mensaje informativo
+                previousPriceAlert.innerHTML = 'Producto nuevo. Ingrese el costo y el precio de venta inicial.';
+                previousPriceAlert.style.display = 'block';
+                precioVentaInput.value = '';
+            }
+
+        } catch (error) {
+            console.error('Error fetching previous price:', error);
+            previousPriceAlert.innerHTML = `Error al cargar datos anteriores. ${error.message}`;
+            previousPriceAlert.style.display = 'block';
+        }
+    }
+    
+    // Asignar el listener de cambio a la selección de farmacia
+    farmaciaSelect.addEventListener('change', fetchPreviousPrice);
+
+
+    // 3. RENDERIZADO DE LA LISTA (Igual que antes)
+    function renderPurchaseList() {
+        const listBody = document.getElementById('purchaseListBody');
+        const totalCalculadoSpan = document.getElementById('total-calculado');
+        const finalizeButton = document.getElementById('finalize-purchase-btn');
+        const listaComprasDataInput = document.getElementById('listaComprasData');
+        const itemCount = document.getElementById('item-count');
+
+        listBody.innerHTML = '';
+        let totalCalculado = 0;
+
+        if (purchaseList.length === 0) {
+            listBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Añada productos usando el formulario de la izquierda.</td></tr>';
+        } else {
+            purchaseList.forEach((item, index) => {
+                totalCalculado += item.costo_total_compra;
+                const row = listBody.insertRow();
+                row.innerHTML = `
+                    <td>${item.nombre}</td>
+                    <td>${item.laboratorio}</td>
+                    <td class="text-center">${item.cantidad_comprada}</td>
+                    <td class="text-end">S/ ${item.costo_total_compra.toFixed(2)}</td>
+                    <td class="text-end">S/ ${item.precio_de_venta.toFixed(2)}</td>
+                    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeItem(${index})"><i class="bi bi-trash"></i></button></td>
+                `;
+            });
+        }
+        
+        itemCount.textContent = purchaseList.length;
+        finalizeButton.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i> Finalizar Ingreso (${purchaseList.length} items)`;
+        totalCalculadoSpan.textContent = `S/ ${totalCalculado.toFixed(2)}`;
+        finalizeButton.disabled = purchaseList.length === 0;
+        
+        // CLAVE: Actualiza el campo oculto con la lista JSON para que Python lo lea
+        listaComprasDataInput.value = JSON.stringify(purchaseList);
+    }
+    
+    function removeItem(index) {
+        if (confirm(`¿Está seguro de eliminar ${purchaseList[index].nombre} de la lista?`)) {
+            purchaseList.splice(index, 1);
+            renderPurchaseList();
+        }
+    }
+    
+    // 4. MANEJO DEL FORMULARIO DE ADICIÓN (Asegurando la validación de la sucursal)
+    document.getElementById('add-item-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (farmaciaSelect.value === '0') {
+            alert('¡ERROR! Primero debe seleccionar la Sucursal de Destino.');
+            return;
+        }
+
+        // Obtener valores y validaciones
+        const nombre = nombreInput.value.trim();
+        const laboratorio = laboratorioInput.value.trim();
+        const cantidad_comprada = parseInt(cantidadInput.value);
+        const costo_total_compra = parseFloat(costoTotalInput.value);
+        const precio_de_venta = parseFloat(precioVentaInput.value);
+        
+        const newItem = {
+            nombre: nombre,
+            laboratorio: laboratorio,
+            cantidad_comprada: cantidad_comprada,
+            costo_total_compra: costo_total_compra,
+            precio_de_venta: precio_de_venta
+        };
+
+        purchaseList.push(newItem);
+        renderPurchaseList();
+        
+        // Limpiar
+        this.reset(); 
+        calculateUnitCostAndProfit(); 
+        previousPriceAlert.style.display = 'none';
+        nombreInput.focus();
+    });
+    
+    // 5. MANEJO DEL FORMULARIO DE FINALIZACIÓN
+    document.getElementById('form_finalizar_compra').addEventListener('submit', function(e) {
+        const farmaciaIdHidden = document.getElementById('farmacia_id_hidden');
+        
+        // CLAVE: Enlaza el valor del select visible al input hidden que se va a enviar
+        farmaciaIdHidden.value = farmaciaSelect.value; 
+        
+        if (farmaciaIdHidden.value === '0') {
+            e.preventDefault();
+            alert('¡ERROR! Por favor, seleccione una sucursal de destino antes de finalizar.');
+            return;
+        }
+        
+        if (purchaseList.length === 0) {
+            e.preventDefault();
+            alert('¡ERROR! La lista de compras está vacía.');
+            return;
+        }
+    });
+
+    // Inicialización al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        renderPurchaseList();
+        calculateUnitCostAndProfit();
+    });
+
+</script>
+{% endblock %}

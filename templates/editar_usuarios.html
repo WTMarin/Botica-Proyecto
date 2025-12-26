@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuario: {{ user.username }}{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-person-lines-fill me-2"></i> Editar Usuario | {{ user.username }}
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">Actualizar Detalles del Usuario</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nombre de Usuario (*)</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Nueva Contraseña (Dejar vacío para no cambiar)</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Ingrese nueva contraseña si desea cambiarla">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Rol (*)</label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="Empleado" {% if user.role == 'Empleado' %}selected{% endif %}>Empleado</option>
+                            <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Administrador</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="farmacia_id" class="form-label">Sucursal Asignada</label>
+                        <select class="form-select" id="farmacia_id" name="farmacia_id">
+                            <option value="0" {% if user.farmacia_id is none %}selected{% endif %}>-- Sin Asignar --</option>
+                            {% for farmacia in farmacias %}
+                                <option value="{{ farmacia.id }}" {% if user.farmacia_id == farmacia.id %}selected{% endif %}>
+                                    {{ farmacia.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 mt-2">
+                        <i class="bi bi-arrow-repeat me-2"></i> Actualizar Usuario
+                    </button>
+                    <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

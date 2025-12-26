@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Seleccionar Farmacia para Venta{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">🏬 Seleccionar Farmacia para Venta</h1>
+<p class="lead">Haga clic en la farmacia cuyo inventario desea utilizar.</p>
+
+<div class="row">
+    {% for farmacia in farmacias %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ farmacia.nombre }}</h5>
+                <p class="card-text text-muted">{{ farmacia.direccion }}</p>
+                <a href="{{ url_for('pantalla_ventas', farmacia_id=farmacia.id) }}" class="btn btn-primary mt-2 w-100">
+                    Ir a Ventas (Inventario de {{ farmacia.nombre }})
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

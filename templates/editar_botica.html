@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Botica: {{ botica.nombre }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">✏️ Editar Botica: {{ botica.nombre }}</h1>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">Modificar Datos de la Botica</h5>
+            </div>
+            <div class="card-body">
+                
+                <form method="POST" action="{{ url_for('editar_botica', botica_id=botica.id) }}">
+                    
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre de la Botica/Sucursal:</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nombre" 
+                               name="nombre" 
+                               value="{{ botica.nombre }}" 
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="direccion" class="form-label">Dirección:</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="direccion" 
+                               name="direccion" 
+                               value="{{ botica.direccion }}" 
+                               required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning w-100 mt-3">Actualizar Botica</button>
+                    <a href="{{ url_for('agregar_farmacia') }}" class="btn btn-secondary w-100 mt-2">Cancelar y Volver</a>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

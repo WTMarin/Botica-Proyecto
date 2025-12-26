@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Gestionar Sucursales{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-shop me-2"></i> Gestión de Sucursales
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i> Registrar Nueva Sucursal</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label for="nombre" class="form-label">Nombre de la Sucursal (*)</label>
+                    <input type="text" class="form-control form-control-lg" id="nombre" name="nombre" required placeholder="Ej: Farmacia Central">
+                </div>
+                <div class="col-md-5">
+                    <label for="direccion" class="form-label">Dirección (*)</label>
+                    <input type="text" class="form-control form-control-lg" id="direccion" name="direccion" required placeholder="Ej: Av. Principal 123">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success btn-lg w-100"><i class="bi bi-building-add me-2"></i> Agregar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-list-task me-2"></i> Sucursales Registradas</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Dirección</th> <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for farmacia in farmacias %}
+                    <tr>
+                        <td>{{ farmacia.id }}</td>
+                        <td>
+                            {{ farmacia.nombre }}
+                            {% if current_user.farmacia_id == farmacia.id %}
+                                <span class="badge bg-info ms-2">Tu Sucursal</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ farmacia.direccion }}</td> <td>
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#deleteFarmaciaModal" 
+                                data-botica-id="{{ farmacia.id }}" 
+                                data-botica-name="{{ farmacia.nombre }}"
+                                {% if current_user.farmacia_id == farmacia.id %}disabled{% endif %}>
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="deleteFarmaciaModal" tabindex="-1" aria-labelledby="deleteFarmaciaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteFarmaciaModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro de que desea eliminar la sucursal **<span id="modal-botica-name" class="fw-bold"></span>**?
+                <p class="mt-2 text-danger small">
+                    NOTA: Esto solo es posible si no hay usuarios, inventario o ventas asociadas a esta sucursal.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteFarmaciaForm" method="GET">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var deleteFarmaciaModal = document.getElementById('deleteFarmaciaModal');
+        deleteFarmaciaModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var boticaId = button.getAttribute('data-botica-id');
+            var boticaName = button.getAttribute('data-botica-name');
+            
+            var modalBoticaName = deleteFarmaciaModal.querySelector('#modal-botica-name');
+            var form = deleteFarmaciaModal.querySelector('#deleteFarmaciaForm');
+
+            modalBoticaName.textContent = boticaName;
+            
+            // La URL de eliminación no cambia
+            form.action = '{{ url_for('eliminar_farmacia', id=0) }}'.replace('0', boticaId);
+        });
+    });
+</script>
+
+{% endblock %}

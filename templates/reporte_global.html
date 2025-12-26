@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte Global</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .card-header { font-weight: bold; }
+        
+        /* Reglas generales para filas y celdas */
+        .table-small td, .table-small th { 
+            padding: .2rem 0.4rem; /* Reducimos el padding vertical a .2rem */
+            font-size: 0.8rem;    /* Reducimos la fuente ligeramente */
+        }
+        
+        /* Centramos el texto del encabezado para mejor lectura */
+        .table-small thead th {
+            vertical-align: middle;
+            text-align: center !important; /* Forzamos la alineación en el centro si es necesario */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-secondary mb-3">← Volver al Dashboard</a>
+        <h1 class="mb-4">📈 Reporte General: {{ farmacia_nombre }}</h1>
+        <hr>
+
+
+
+
+        <div class="card shadow p-3 mb-4">
+            <h5 class="card-header">Filtros de Análisis (Ventas y Utilidad)</h5>
+            
+            <form method="POST" id="filtroForm" action="{{ url_for('reporte_global') }}" class="mt-3">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="farmacia_id">Filtrar Sucursal:</label>
+                        <select name="farmacia_id" id="farmacia_id" class="form-control"> 
+                            <option value="">Consolidado Global</option>
+                            {% for farmacia in todas_las_farmacias %}
+                            <option value="{{ farmacia.id }}" {% if farmacia.id == farmacia_seleccionada_id %}selected{% endif %}>
+                                {{ farmacia.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="filtro_vendedor">Filtrar Vendedor:</label>
+                        <select name="filtro_vendedor" id="filtro_vendedor" class="form-control">
+                            <option value="">Todos los Vendedores</option>
+                            {% for user in all_users %}
+                            <option value="{{ user.username }}" {% if user.username == filtro_vendedor %}selected{% endif %}>
+                                {{ user.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="fecha_inicio">Fecha Inicio:</label>
+                        <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ fecha_inicio_str }}">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="fecha_fin">Fecha Fin:</label>
+                        <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ fecha_fin_str }}">
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-block mr-2">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <button type="button" class="btn btn-info btn-block" onclick="aplicarReporteHoy()">
+                            <i class="far fa-calendar-check"></i> Hoy
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+
+
+
+        <div class="card shadow mb-4">
+            <h5 class="card-header bg-dark text-white">💵 5. Detalle de Cierres de Caja</h5>
+            <div class="card-body">
+                <p class="lead fw-bold text-dark">Total de Cierres Reportados: S/ {{ "%.2f"|format(total_cierre_reportado) }}</p>
+                
+                <hr>
+                
+                <h6 class="card-title mt-4">Registros de Cierre por Vendedor/Día</h6>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-striped table-sm table-small">
+                        <thead>
+                            <tr>
+                                <th class="small"> FECHA/HORA CIERRE</th>
+                                <th class="small"> VENDEDOR</th>
+                                <th class="small"> SUCURSAL</th>
+                                <th class="small"> FONDO (S/)</th>
+                                <th class="small text-success">EfEFECTIVO CONTADO (S/)</th>
+                                <th class="small text-success">TARJETA CONTADO (S/)</th>
+                                <th class="small text-primary">VENTA SISTEMA (S/)</th>
+                                <th class="small text-danger">(S/F) EFECTIVO</th>
+                                <th class="small text-danger">(S/F) TARJETA</th>
+                                <th class="small bg-danger text-white">TOTAL (S/)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cierre in cierres_detallados %}
+                            {# Calculamos el Sobrante/Faltante Total #}
+                            {% set total_sobrante_faltante_cierre = cierre.diferencia_efectivo + cierre.diferencia_tarjeta %}
+                            
+                            <tr>
+                                {# Usamos close_time y user_rel, tal como en tu modelo #}
+                                <td>{{ cierre.close_time.strftime('%Y-%m-%d %H:%M') if cierre.close_time else 'N/A' }}</td>
+                                <td>{{ cierre.user_rel.username if cierre.user_rel else 'N/A' }}</td>
+                                <td>{{ cierre.farmacia.nombre if cierre.farmacia else 'N/A' }}</td>
+                                
+                                {# Montos de Entrada y Contado #}
+                                <td class="text-right fw-bold text-success"">S/ {{ "%.2f"|format(cierre.fondo_fijo) }}</td>
+                                <td class="text-right fw-bold text-success">S/ {{ "%.2f"|format(cierre.efectivo_contado) }}</td>
+                                <td class="text-right">S/ {{ "%.2f"|format(cierre.tarjeta_yape_fisico) }}</td>
+                                <td class="text-right fw-bold text-primary">S/ {{ "%.2f"|format(cierre.ventas_totales_sistema) }}</td>
+                                
+
+                                {# 4. Diferencia Efectivo (Cuadre) #}
+                                {% set dif_efectivo = cierre.diferencia_efectivo %}
+                                <td class="text-right fw-bold text-{{ 'success' if dif_efectivo > 0.05 else ('danger' if dif_efectivo < -0.05 else 'primary') }}">
+                                    S/ {{ "%.2f"|format(dif_efectivo) }}
+                                </td>
+
+                                {# 5. Diferencia Tarjeta (Cuadre) #}
+                                {% set dif_tarjeta = cierre.diferencia_tarjeta %}
+                                <td class="text-right fw-bold text-{{ 'success' if dif_tarjeta > 0.05 else ('danger' if dif_tarjeta < -0.05 else 'primary') }}">
+                                    S/ {{ "%.2f"|format(dif_tarjeta) }}
+                                </td>
+
+                                {# 6. TOTAL Sobrante/Faltante #}
+                                <td class="text-right fw-bolder bg-danger text-white">
+                                    S/ {{ "%.2f"|format(total_sobrante_faltante_cierre) }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center">No hay registros de cierres de caja en el período seleccionado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info fw-bold"> 
+                                {# Colspan 4 para cubrir las primeras 4 columnas (Fecha, Vendedor, Sucursal, Fondo) #}
+                                <td colspan="4" style="text-align: right;">TOTALES DEL PERÍODO:</td>
+                                
+                                {# 1. EFECTIVO CONTADO #}
+                                <td class="text-right">
+                                    S/ {{ "%.2f"|format(totales_cierres_reporte.efectivo_contado | default(0.0) | float) }}</td>
+                                
+                                {# 2. TARJETA CONTADO #}
+                                <td class="text-right">
+                                    S/ {{ "%.2f"|format(totales_cierres_reporte.tarjeta_contado | default(0.0) | float) }}</td>
+                                
+                                {# 3. VENTA SISTEMA #}
+                                <td class="text-right">
+                                    S/ {{ "%.2f"|format(totales_cierres_reporte.venta_sistema | default(0.0) | float) }}</td>
+                                
+                                {# 4. (S/F) EFECTIVO - Color de contraste para Sobrante/Faltante #}
+                                <td class="text-right">
+                                    S/ {{ "%.2f"|format(totales_cierres_reporte.sf_efectivo | default(0.0) | float) }}</td>
+                                
+                                {# 5. (S/F) TARJETA #}
+                                <td class="text-right">
+                                    S/ {{ "%.2f"|format(totales_cierres_reporte.sf_tarjeta | default(0.0) | float) }}</td>
+                                
+                                {# 6. TOTAL (S/F) - Fondo Rojo/Destacado #}
+                                <td class="text-right bg-danger text-white">S/ {{ "%.2f"|format(totales_cierres_reporte.sf_total | default(0.0) | float) }}</td>
+                            </tr>
+                        </tfoot>
+
+
+
+
+
+
+
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow mb-4">
+                    <h5 class="card-header">💰 1. Resumen Financiero del Período</h5>
+                    <div class="card-body">
+                        <p><strong>Ventas Totales (Sistema):</strong> <span class="badge badge-primary">S/ {{ "%.2f"|format(total_vendido) }}</span></p>
+                        <p><strong>Utilidad Neta (Periodo):</strong> <span class="badge badge-success">S/ {{ "%.2f"|format(utilidad_neta_periodo) }}</span></p>
+                        <hr>
+                        <p><strong>Total Reportado en Cierres:</strong> <span class="badge badge-danger">S/ {{ "%.2f"|format(total_cierre_reportado) }}</span></p>
+                                            
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <h5 class="card-header">🥇 Top 10 Productos (Por Venta)</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for nombre, total in top_10_productos %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ loop.index }}. {{ nombre }}
+                                <span class="badge badge-warning badge-pill">S/ {{ "%.2f"|format(total) }}</span>
+                            </li>
+                        {% else %}
+                            <li class="list-group-item">No hay ventas en el período.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow mb-4">
+                    <h5 class="card-header">📦 2. Resumen de Inventario (Valorización)</h5>
+                    <div class="card-body">
+                        <p><strong>Valor Total (Costo PMP):</strong> <span class="badge badge-info">S/ {{ "%.2f"|format(valor_costo) }}</span></p>
+                        <p><strong>Valor Total (Precio Venta):</strong> <span class="badge badge-info">S/ {{ "%.2f"|format(valor_venta) }}</span></p>
+                        <p><strong>Utilidad Potencial:</strong> <span class="badge badge-success">S/ {{ "%.2f"|format(utilidad_potencial) }}</span></p>
+                    </div>
+                    
+                    <h6 class="card-header">Detalle del Stock Actual</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm table-small">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Stock</th>
+                                    <th>P. Venta</th>
+                                    <th>% Utilidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventario %}
+                                <tr>
+                                    <td>{{ item.nombre }}</td>
+                                    <td>{{ item.stock }}</td>
+                                    <td>S/ {{ "%.2f"|format(item.precio_de_venta) }}</td>
+                                    <td>{{ "%.2f"|format(item.porcentaje_utilidad) }}%</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center">Inventario vacío.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <h5 class="card-header">📜 3. Historial de Ventas del Período</h5>
+            <div class="table-responsive">
+                <table class="table table-striped table-sm table-small">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Total Venta</th>
+                            <th>Vendedor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venta in ventas %}
+                        <tr>
+                            <td>{{ venta.fecha_venta }}</td>
+                            <td>{{ venta.nombre_producto }}</td>
+                            <td>{{ venta.cantidad }}</td>
+                            <td>{{ venta.total }}</td>
+                            <td>{{ venta.vendedor }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center">No hay ventas registradas en el período seleccionado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            
+            <h5 class="card-header bg-danger text-white">📉 4. Informe de Ajustes (Pérdidas y Ganancias por Stock)</h5>
+            <div class="card-body">
+                <p class="lead fw-bold text-danger">Pérdida Neta Total por Ajustes: S/ {{ "%.2f"|format(total_perdidas) }}</p>
+                
+                <hr>
+                
+                <h6 class="card-title mt-4">Detalle de Registros de Pérdida (Motivo, Producto y Costo)</h6>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-striped table-sm table-small">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Motivo</th>
+                                <th>Cant. Perdid.</th>
+                                <th>Costo Unit.</th>
+                                <th>Valor Perdido (S/)</th>
+                                <th>Registrado por</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ajuste in ajustes_para_tabla %}
+                            <tr>
+                                <td>{{ ajuste.fecha }}</td>
+                                <td>{{ ajuste.producto }}</td>
+                                <td>{{ ajuste.motivo }}</td>
+                                <td>{{ ajuste.cantidad }}</td>
+                                <td>S/ {{ "%.2f"|format(ajuste.costo_unitario) }}</td>
+                                <td class="fw-bold text-danger">
+                                    S/ {{ "%.2f"|format(ajuste.valor_perdido) }}
+                                </td>
+                                <td>{{ ajuste.vendedor }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No hay registros de pérdidas de stock en el período seleccionado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+    <script>
+        function getTodayString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            // Mes y día necesitan el cero inicial si son menores de 10
+            const month = String(today.getMonth() + 1).padStart(2, '0'); 
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function aplicarReporteHoy() {
+            const form = document.getElementById('filtroForm');
+            const todayStr = getTodayString();
+            
+            // 1. Seteamos las fechas de inicio y fin al día de hoy
+            document.getElementById('fecha_inicio').value = todayStr;
+            document.getElementById('fecha_fin').value = todayStr;
+            
+            // 2. Creamos un campo oculto para indicar al servidor que es el reporte del día
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'reporte_hoy'; // Debe coincidir con 'reporte_hoy' en app.py
+            input.value = 'true';
+            form.appendChild(input);
+            
+            // 3. Enviamos el formulario por POST
+            form.submit();
+        }
+
+
+        function aplicarReporteDelDia() {
+            const form = document.getElementById('filtroForm');
+            const todayStr = getTodayString();
+            
+            // Seteamos las fechas de inicio y fin al día de hoy
+            document.getElementById('fecha_inicio').value = todayStr;
+            document.getElementById('fecha_fin').value = todayStr;
+            
+            // Enviamos el formulario por POST (incluyendo las fechas de hoy y los filtros de Farmacia/Vendedor actuales)
+            form.submit();
+        }
+        
+        
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Obtenemos el formulario único por su ID
+            const form = document.getElementById('filtroForm');
+            
+            if (form) {
+                // 1. Auto-submit al cambiar la Farmacia
+                const farmaciaSelect = document.getElementById('farmacia_id');
+                if (farmaciaSelect) {
+                    farmaciaSelect.addEventListener('change', function() {
+                        form.submit(); // Envía todo el formulario por POST
+                    });
+                }
+
+                // 2. Auto-submit al cambiar el Vendedor
+                const vendedorSelect = document.getElementById('filtro_vendedor');
+                if (vendedorSelect) {
+                    vendedorSelect.addEventListener('change', function() {
+                        form.submit(); // Envía todo el formulario por POST
+                    });
+                }
+            }
+        });
+
+        
+
+
+    </script> 
+</body>
+</html>

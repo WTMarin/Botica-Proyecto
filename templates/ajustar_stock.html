@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Ajuste de Stock{% endblock %}
+
+{% block page_heading %}
+    <i class="bi bi-gear me-2"></i> Ajuste Manual de Stock
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">Ajuste de Stock para Auditoría o Pérdida</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i> **Producto:** <span class="fw-bold">{{ producto.nombre }}</span>
+                    <br>
+                    <i class="bi bi-shop me-2"></i> **Sucursal:** <span class="fw-bold">{{ farmacia_nombre }}</span>
+                    <br>
+                    <i class="bi bi-box-seam me-2"></i> **Stock Actual en Sistema:** <span class="fw-bold text-primary">{{ producto.stock }} unidades</span>
+                </div>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="nuevo_stock" class="form-label fw-bold">Nuevo Stock Final (Conteo Físico)</label>
+                        <input type="number" class="form-control form-control-lg" id="nuevo_stock" name="nuevo_stock" value="{{ producto.stock }}" required min="0">
+                        <div class="form-text">Ingrese el número exacto de unidades que debe reflejar el inventario.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="motivo" class="form-label fw-bold">Motivo del Ajuste (*)</label>
+                        <textarea class="form-control" id="motivo" name="motivo" rows="3" placeholder="Ej: Faltante detectado en conteo físico, producto caducado, corrección de ingreso, etc." required></textarea>
+                        <div class="form-text text-danger">Este registro es permanente. Debe indicar el motivo exacto para la trazabilidad.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 mt-3">
+                        <i class="bi bi-arrow-repeat me-2"></i> Aplicar Ajuste de Stock
+                    </button>
+                    <a href="{{ url_for('gestion_stock', farmacia_id=producto.farmacia_id) }}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

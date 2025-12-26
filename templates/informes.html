@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informes y Reportes</title>
+</head>
+<body>
+    <h1>📈 Reporte General (Administrador)</h1>
+    <a href="{{ url_for('dashboard') }}">Volver al Dashboard</a>
+    <br><br>
+
+    <h2>📅 Filtro de Reporte Financiero y Ventas</h2>
+    <form method="POST" action="{{ url_for('informes') }}">
+        <label for="fecha_inicio">Desde el Día:</label>
+        <input type="date" id="fecha_inicio" name="fecha_inicio" 
+            value="{{ fecha_inicio_str or '' }}" required> 
+            
+        <label for="fecha_fin">Hasta el Día:</label>
+        <input type="date" id="fecha_fin" name="fecha_fin" 
+            value="{{ fecha_fin_str or '' }}" required>
+            
+        <button type="submit">Generar Reporte por Rango</button>
+        
+        <button type="button" onclick="window.location.href='{{ url_for('informes') }}'">Ver Total Histórico</button>
+    </form>
+    <hr> 
+
+    <h2>💰 1. Resumen Financiero del Período Seleccionado</h2>
+    <p>
+        <strong>Ventas Totales (Periodo):</strong> S/ {{ "%.2f"|format(total_vendido) }}
+        <br>
+        <strong>Utilidad Neta Realizada (Periodo):</strong> <span style="color: green; font-weight: bold;">S/ {{ "%.2f"|format(utilidad_neta_periodo) }}</span>
+    </p>
+    <hr>
+
+    <h2>📦 2. Resumen de Inventario (Valor Actual)</h2>
+    <p>
+        <strong>Valor Total del Stock (Costo):</strong> S/ {{ "%.2f"|format(valor_costo) }}
+        <br>
+        <strong>Valor Total del Stock (Venta):</strong> S/ {{ "%.2f"|format(valor_venta) }}
+        <br>
+        <strong>Utilidad Potencial en Stock:</strong> S/ {{ "%.2f"|format(utilidad_potencial) }}
+    </p>
+
+    <h3>Detalle del Stock</h3>
+    <table border="1" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Laboratorio</th>
+                <th>Stock Actual</th>
+                <th>Costo Unitario</th>
+                <th>Precio Venta</th>
+                <th>% Utilidad</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prod in inventario %}
+            <tr>
+                <td>{{ prod.nombre }}</td>
+                <td>{{ prod.laboratorio }}</td>
+                <td style="font-weight: bold;">{{ prod.stock }}</td>
+                <td>S/ {{ "%.2f"|format(prod.precio_unitario_calculado) }}</td>
+                <td>S/ {{ "%.2f"|format(prod.precio_de_venta) }}</td>
+                <td>{{ "%.1f"|format(prod.porcentaje_utilidad) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <hr>
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Filtros de Reporte</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('informes') }}" class="row g-3 align-items-end">
+                
+                <div class="col-md-4">
+                    <label for="filtro_vendedor" class="form-label">Filtrar por Vendedor:</label>
+                    <select name="filtro_vendedor" id="filtro_vendedor" class="form-select">
+                        <option value="" {% if not filtro_vendedor %}selected{% endif %}>--- Todos los Vendedores ---</option>
+                        {% for user in all_users %}
+                        <option value="{{ user.username }}" {% if filtro_vendedor == user.username %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# Si ya tienes campos de fecha aquí, puedes dejarlos o adaptarlos #}
+                
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Aplicar Filtro</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('informes') }}" class="btn btn-secondary w-100">Limpiar Filtros</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <hr>
+
+
+
+
+    
+
+
+
+
+
+
+
+    <h2>📜 3. Historial de Ventas del Período</h2>
+    <table border="1" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Fecha/Hora</th>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>P. Final</th>
+                <th>Total Venta</th>
+                <th>Vendedor</th> </tr>
+        </thead>
+        <tbody>
+            {% for venta in ventas %}
+            <tr>
+                <td>{{ venta.fecha_venta }}</td>
+                <td>{{ venta.nombre_producto }}</td>
+                <td>{{ venta.cantidad }}</td>
+                <td>{{ venta.precio_con_descuento }}</td> 
+                <td>{{ venta.total }}</td>
+                <td>{{ venta.vendedor }}</td>
+
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center;">No hay ventas registradas en el período seleccionado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br><br>
+
+</body>
+</html>
