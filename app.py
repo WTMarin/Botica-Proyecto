@@ -14,6 +14,7 @@ import os
 # ----------------------------------------------------
 # 1. CONFIGURACIÓN INICIAL DE LA APLICACIÓN
 # ----------------------------------------------------
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///tu_db_local.db')
 # Si usas Render, tendrás que agregar este parámetro:
 if database_url.startswith("postgres://"):
