@@ -15,6 +15,10 @@ import os
 # 1. CONFIGURACIÓN INICIAL DE LA APLICACIÓN
 # ----------------------------------------------------
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///tu_db_local.db')
+# Si usas Render, tendrás que agregar este parámetro:
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 #app.config['SECRET_KEY'] = 'mi_clave_secreta_debe_ser_larga_y_unica'
@@ -22,6 +26,22 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.jinja_env.globals.update(abs=abs)
 db = SQLAlchemy(app)
+
+
+# =======================================================
+# NUEVO BLOQUE CRÍTICO PARA EL DESPLIEGUE GRATUITO EN RENDER
+# Esto fuerza la creación de tablas al inicio si no existen.
+# =======================================================
+with app.app_context():
+    # Usar db.create_all() si las tablas no existen.
+    # NOTA: Esto solo crea tablas, no maneja migraciones complejas.
+    try:
+        db.create_all()
+        print("INFO: Las tablas de la base de datos han sido creadas (o ya existían).")
+    except Exception as e:
+        print(f"ADVERTENCIA: Falló la creación de tablas, puede que ya existan o haya un error de DB: {e}")
+# =======================================================
+
 
 # Configuración del sistema de Login
 login_manager = LoginManager()
