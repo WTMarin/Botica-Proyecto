@@ -14,7 +14,6 @@ import os
 # ----------------------------------------------------
 # 1. CONFIGURACIÓN INICIAL DE LA APLICACIÓN
 # ----------------------------------------------------
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///tu_db_local.db')
 # Si usas Render, tendrás que agregar este parámetro:
 if database_url.startswith("postgres://"):
@@ -25,6 +24,7 @@ app = Flask(__name__)
 #app.config['SECRET_KEY'] = 'mi_clave_secreta_debe_ser_larga_y_unica'
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.jinja_env.globals.update(abs=abs)
 db = SQLAlchemy(app)
 
