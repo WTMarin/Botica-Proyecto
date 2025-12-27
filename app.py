@@ -11,13 +11,7 @@ import pytz
 import json # Import necesario para procesar el JSON de Compra
 import os
 
-# ----------------------------------------------------
-# 1. CONFIGURACIÓN INICIAL DE LA APLICACIÓN
-# ----------------------------------------------------
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///tu_db_local.db')
-# Si usas Render, tendrás que agregar este parámetro:
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 
 app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -28,7 +22,21 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.jinja_env.globals.update(abs=abs)
 db = SQLAlchemy(app)
 
+# ----------------------------------------------------
+# 1. CONFIGURACIÓN INICIAL DE LA APLICACIÓN
+# ----------------------------------------------------
+#database_url = os.environ.get('DATABASE_URL', 'sqlite:///tu_db_local.db')
+# Si usas Render, tendrás que agregar este parámetro:
+#if database_url.startswith("postgres://"):
+#    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
+
+# Lógica para usar la variable de entorno de Render
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+
+if SQLALCHEMY_DATABASE_URI is None:
+    # Fallback si no está en Render (ej: desarrollo local)
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///site.db'
 # =======================================================
 # NUEVO BLOQUE CRÍTICO PARA EL DESPLIEGUE GRATUITO EN RENDER
 # Esto fuerza la creación de tablas al inicio si no existen.
