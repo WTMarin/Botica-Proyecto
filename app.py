@@ -33,14 +33,14 @@ db = SQLAlchemy(app)
 # NUEVO BLOQUE CRÍTICO PARA EL DESPLIEGUE GRATUITO EN RENDER
 # Esto fuerza la creación de tablas al inicio si no existen.
 # =======================================================
-with app.app_context():
+#with app.app_context():
     # Usar db.create_all() si las tablas no existen.
     # NOTA: Esto solo crea tablas, no maneja migraciones complejas.
-    try:
-        db.create_all()
-        print("INFO: Las tablas de la base de datos han sido creadas (o ya existían).")
-    except Exception as e:
-        print(f"ADVERTENCIA: Falló la creación de tablas, puede que ya existan o haya un error de DB: {e}")
+#    try:
+#        db.create_all()
+#        print("INFO: Las tablas de la base de datos han sido creadas (o ya existían).")
+#    except Exception as e:
+#        print(f"ADVERTENCIA: Falló la creación de tablas, puede que ya existan o haya un error de DB: {e}")
 # =======================================================
 
 
