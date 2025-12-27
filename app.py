@@ -15,7 +15,7 @@ import os
 
 app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-#app.config['SECRET_KEY'] = 'mi_clave_secreta_debe_ser_larga_y_unica'
+app.config['SECRET_KEY'] = 'mi_clave_secreta_debe_ser_larga_y_unica'
 #app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 #app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
