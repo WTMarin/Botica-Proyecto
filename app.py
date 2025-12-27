@@ -16,11 +16,11 @@ import os
 app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 #app.config['SECRET_KEY'] = 'mi_clave_secreta_debe_ser_larga_y_unica'
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+#app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.jinja_env.globals.update(abs=abs)
-db = SQLAlchemy(app)
+#db = SQLAlchemy(app)
 
 # ----------------------------------------------------
 # 1. CONFIGURACIÓN INICIAL DE LA APLICACIÓN
@@ -31,12 +31,7 @@ db = SQLAlchemy(app)
 #    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 
-# Lógica para usar la variable de entorno de Render
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 
-if SQLALCHEMY_DATABASE_URI is None:
-    # Fallback si no está en Render (ej: desarrollo local)
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///site.db'
 # =======================================================
 # NUEVO BLOQUE CRÍTICO PARA EL DESPLIEGUE GRATUITO EN RENDER
 # Esto fuerza la creación de tablas al inicio si no existen.
@@ -50,6 +45,18 @@ if SQLALCHEMY_DATABASE_URI is None:
 #    except Exception as e:
 #        print(f"ADVERTENCIA: Falló la creación de tablas, puede que ya existan o haya un error de DB: {e}")
 # =======================================================
+
+# 1. Obtiene el valor de la variable de entorno
+db_uri = os.environ.get('DATABASE_URL')
+
+# 2. Configura Flask (asegúrese de usar 'db_uri', no un nombre indefinido)
+if db_uri is None:
+    db_uri = 'sqlite:///site.db' # Fallback local
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri # <-- Aquí la variable DEBE COINCIDIR con la de arriba
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
 
 
 # Configuración del sistema de Login
